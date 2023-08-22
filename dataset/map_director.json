@@ -1,0 +1,26 @@
+{
+	"name": "map_director",
+	"properties": {
+		"linkedServiceName": {
+			"referenceName": "AzureSqlDatabase1",
+			"type": "LinkedServiceReference"
+		},
+		"annotations": [],
+		"type": "AzureSqlTable",
+		"schema": [
+			{
+				"name": "director_id",
+				"type": "int",
+				"precision": 10
+			},
+			{
+				"name": "director",
+				"type": "nvarchar"
+			}
+		],
+		"typeProperties": {
+			"schema": "dbo",
+			"table": "map_director"
+		}
+	}
+}
