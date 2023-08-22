@@ -1,0 +1,105 @@
+{
+	"name": "load_map_genre",
+	"properties": {
+		"type": "MappingDataFlow",
+		"typeProperties": {
+			"sources": [
+				{
+					"dataset": {
+						"referenceName": "blob_land_movies",
+						"type": "DatasetReference"
+					},
+					"name": "source1"
+				}
+			],
+			"sinks": [
+				{
+					"dataset": {
+						"referenceName": "AzureSqlTable3",
+						"type": "DatasetReference"
+					},
+					"name": "loadintomapgenre"
+				}
+			],
+			"transformations": [
+				{
+					"name": "derivedColumn1"
+				},
+				{
+					"name": "flatten1"
+				},
+				{
+					"name": "aggregate1"
+				},
+				{
+					"name": "select1"
+				},
+				{
+					"name": "cleanGenre"
+				}
+			],
+			"scriptLines": [
+				"source(output(",
+				"          Rank as string,",
+				"          Title as string,",
+				"          Genre as string,",
+				"          Description as string,",
+				"          Director as string,",
+				"          Actors as string,",
+				"          Year as string,",
+				"          {Runtime (Minutes)} as string,",
+				"          Rating as string,",
+				"          Votes as string,",
+				"          {Revenue (Millions)} as string,",
+				"          Metascore as string",
+				"     ),",
+				"     allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     ignoreNoFilesFound: false) ~> source1",
+				"source1 derive(Genre = split(Genre, ',')) ~> derivedColumn1",
+				"derivedColumn1 foldDown(unroll(Genre),",
+				"     mapColumn(",
+				"          Rank,",
+				"          Title,",
+				"          Genre,",
+				"          Description,",
+				"          Director,",
+				"          Actors,",
+				"          Year,",
+				"          {Runtime (Minutes)},",
+				"          Rating,",
+				"          Votes,",
+				"          {Revenue (Millions)},",
+				"          Metascore",
+				"     ),",
+				"     skipDuplicateMapInputs: false,",
+				"     skipDuplicateMapOutputs: false) ~> flatten1",
+				"cleanGenre aggregate(groupBy(Genre),",
+				"     each(match(name=='Rank'), $$ = first($$))) ~> aggregate1",
+				"aggregate1 select(mapColumn(",
+				"          Genre",
+				"     ),",
+				"     skipDuplicateMapInputs: true,",
+				"     skipDuplicateMapOutputs: true) ~> select1",
+				"flatten1 derive(Genre = trim(Genre)) ~> cleanGenre",
+				"select1 sink(allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     input(",
+				"          genre_id as integer,",
+				"          genre as string",
+				"     ),",
+				"     deletable:false,",
+				"     insertable:true,",
+				"     updateable:false,",
+				"     upsertable:false,",
+				"     format: 'table',",
+				"     skipDuplicateMapInputs: true,",
+				"     skipDuplicateMapOutputs: true,",
+				"     errorHandlingOption: 'stopOnFirstError',",
+				"     mapColumn(",
+				"          genre = Genre",
+				"     )) ~> loadintomapgenre"
+			]
+		}
+	}
+}
