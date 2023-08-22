@@ -1,0 +1,32 @@
+{
+	"name": "AzureSqlTable1",
+	"properties": {
+		"linkedServiceName": {
+			"referenceName": "AzureSqlDatabase1",
+			"type": "LinkedServiceReference"
+		},
+		"annotations": [],
+		"type": "AzureSqlTable",
+		"schema": [
+			{
+				"name": "stg_actor_film_id",
+				"type": "int",
+				"precision": 10
+			},
+			{
+				"name": "actor_id",
+				"type": "int",
+				"precision": 10
+			},
+			{
+				"name": "film_id",
+				"type": "int",
+				"precision": 10
+			}
+		],
+		"typeProperties": {
+			"schema": "dbo",
+			"table": "stg_actor_film_assoc"
+		}
+	}
+}

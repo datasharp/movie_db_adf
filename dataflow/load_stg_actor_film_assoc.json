@@ -26,7 +26,15 @@
 					"name": "mapfilm"
 				}
 			],
-			"sinks": [],
+			"sinks": [
+				{
+					"dataset": {
+						"referenceName": "AzureSqlTable1",
+						"type": "DatasetReference"
+					},
+					"name": "sink1"
+				}
+			],
 			"transformations": [
 				{
 					"name": "derivedColumn1"
@@ -48,6 +56,9 @@
 				},
 				{
 					"name": "select3"
+				},
+				{
+					"name": "select4"
 				}
 			],
 			"scriptLines": [
@@ -129,7 +140,30 @@
 				"          film_id",
 				"     ),",
 				"     skipDuplicateMapInputs: true,",
-				"     skipDuplicateMapOutputs: true) ~> select3"
+				"     skipDuplicateMapOutputs: true) ~> select3",
+				"join2 select(mapColumn(",
+				"          film_id,",
+				"          actor_id",
+				"     ),",
+				"     skipDuplicateMapInputs: true,",
+				"     skipDuplicateMapOutputs: true) ~> select4",
+				"select4 sink(allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     input(",
+				"          stg_actor_film_id as integer,",
+				"          actor_id as integer,",
+				"          film_id as integer",
+				"     ),",
+				"     deletable:false,",
+				"     insertable:true,",
+				"     updateable:false,",
+				"     upsertable:false,",
+				"     format: 'table',",
+				"     errorHandlingOption: 'stopOnFirstError',",
+				"     mapColumn(",
+				"          actor_id,",
+				"          film_id",
+				"     )) ~> sink1"
 			]
 		}
 	}
