@@ -48,9 +48,6 @@
 				},
 				{
 					"name": "select3"
-				},
-				{
-					"name": "join3"
 				}
 			],
 			"scriptLines": [
@@ -123,7 +120,7 @@
 				"     skipDuplicateMapInputs: false,",
 				"     skipDuplicateMapOutputs: false) ~> select2",
 				"select3, mapactor join(Actors == actor,",
-				"     joinType:'left',",
+				"     joinType:'inner',",
 				"     matchType:'exact',",
 				"     ignoreSpaces: false,",
 				"     broadcast: 'off')~> join2",
@@ -132,12 +129,7 @@
 				"          film_id",
 				"     ),",
 				"     skipDuplicateMapInputs: true,",
-				"     skipDuplicateMapOutputs: true) ~> select3",
-				"mapactor, join1 join(actor === Actors,",
-				"     joinType:'left',",
-				"     matchType:'exact',",
-				"     ignoreSpaces: false,",
-				"     broadcast: 'off')~> join3"
+				"     skipDuplicateMapOutputs: true) ~> select3"
 			]
 		}
 	}
