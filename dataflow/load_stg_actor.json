@@ -1,0 +1,126 @@
+{
+	"name": "load_stg_actor",
+	"properties": {
+		"type": "MappingDataFlow",
+		"typeProperties": {
+			"sources": [
+				{
+					"dataset": {
+						"referenceName": "blob_land_movies",
+						"type": "DatasetReference"
+					},
+					"name": "source1"
+				},
+				{
+					"dataset": {
+						"referenceName": "map_actor",
+						"type": "DatasetReference"
+					},
+					"name": "mapactor"
+				}
+			],
+			"sinks": [
+				{
+					"dataset": {
+						"referenceName": "AzureSqlTable2",
+						"type": "DatasetReference"
+					},
+					"name": "sink1"
+				}
+			],
+			"transformations": [
+				{
+					"name": "derivedColumn1"
+				},
+				{
+					"name": "flatten1"
+				},
+				{
+					"name": "cleanActors"
+				},
+				{
+					"name": "join1"
+				},
+				{
+					"name": "aggregate1"
+				},
+				{
+					"name": "select1"
+				}
+			],
+			"scriptLines": [
+				"source(output(",
+				"          Rank as string,",
+				"          Title as string,",
+				"          Genre as string,",
+				"          Description as string,",
+				"          Director as string,",
+				"          Actors as string,",
+				"          Year as string,",
+				"          {Runtime (Minutes)} as string,",
+				"          Rating as string,",
+				"          Votes as string,",
+				"          {Revenue (Millions)} as string,",
+				"          Metascore as string",
+				"     ),",
+				"     allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     ignoreNoFilesFound: false) ~> source1",
+				"source(output(",
+				"          actor_id as integer,",
+				"          actor as string",
+				"     ),",
+				"     allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     isolationLevel: 'READ_UNCOMMITTED',",
+				"     format: 'table') ~> mapactor",
+				"source1 derive(Actors = split(Actors, ',')) ~> derivedColumn1",
+				"derivedColumn1 foldDown(unroll(Actors),",
+				"     mapColumn(",
+				"          Rank,",
+				"          Title,",
+				"          Genre,",
+				"          Description,",
+				"          Director,",
+				"          Actors,",
+				"          Year,",
+				"          {Runtime (Minutes)},",
+				"          Rating,",
+				"          Votes,",
+				"          {Revenue (Millions)},",
+				"          Metascore",
+				"     ),",
+				"     skipDuplicateMapInputs: false,",
+				"     skipDuplicateMapOutputs: false) ~> flatten1",
+				"flatten1 derive(Actors = trim(Actors)) ~> cleanActors",
+				"cleanActors, mapactor join(Actors == actor,",
+				"     joinType:'inner',",
+				"     matchType:'exact',",
+				"     ignoreSpaces: false,",
+				"     broadcast: 'auto')~> join1",
+				"join1 aggregate(groupBy(Actors),",
+				"     each(match(name != 'Actors'), $$ = first($$))) ~> aggregate1",
+				"aggregate1 select(mapColumn(",
+				"          actor_id,",
+				"          actor",
+				"     ),",
+				"     skipDuplicateMapInputs: true,",
+				"     skipDuplicateMapOutputs: true) ~> select1",
+				"select1 sink(allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     input(",
+				"          actor_id as integer,",
+				"          actor as string",
+				"     ),",
+				"     deletable:false,",
+				"     insertable:true,",
+				"     updateable:false,",
+				"     upsertable:false,",
+				"     format: 'table',",
+				"     skipDuplicateMapInputs: true,",
+				"     skipDuplicateMapOutputs: true,",
+				"     errorHandlingOption: 'stopOnFirstError') ~> sink1"
+			]
+		}
+	}
+}
