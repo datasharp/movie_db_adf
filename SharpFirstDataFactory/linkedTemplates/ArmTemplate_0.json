@@ -144,6 +144,146 @@
 			]
 		},
 		{
+			"name": "[concat(parameters('factoryName'), '/dim_actor')]",
+			"type": "Microsoft.DataFactory/factories/datasets",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"linkedServiceName": {
+					"referenceName": "AzureSqlDatabase1",
+					"type": "LinkedServiceReference"
+				},
+				"annotations": [],
+				"type": "AzureSqlTable",
+				"schema": [
+					{
+						"name": "actor_id",
+						"type": "int",
+						"precision": 10
+					},
+					{
+						"name": "actor",
+						"type": "nvarchar"
+					}
+				],
+				"typeProperties": {
+					"schema": "dbo",
+					"table": "dim_actor"
+				}
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/linkedServices/AzureSqlDatabase1')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/dim_actor_movie_assoc')]",
+			"type": "Microsoft.DataFactory/factories/datasets",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"linkedServiceName": {
+					"referenceName": "AzureSqlDatabase1",
+					"type": "LinkedServiceReference"
+				},
+				"annotations": [],
+				"type": "AzureSqlTable",
+				"schema": [
+					{
+						"name": "dim_actor_movie_assoc_id",
+						"type": "int",
+						"precision": 10
+					},
+					{
+						"name": "actor_id",
+						"type": "int",
+						"precision": 10
+					},
+					{
+						"name": "film_id",
+						"type": "int",
+						"precision": 10
+					}
+				],
+				"typeProperties": {
+					"schema": "dbo",
+					"table": "dim_actor_movie_assoc"
+				}
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/linkedServices/AzureSqlDatabase1')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/dim_genre_movie_assoc')]",
+			"type": "Microsoft.DataFactory/factories/datasets",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"linkedServiceName": {
+					"referenceName": "AzureSqlDatabase1",
+					"type": "LinkedServiceReference"
+				},
+				"annotations": [],
+				"type": "AzureSqlTable",
+				"schema": [
+					{
+						"name": "dim_genre_movie_assoc_id",
+						"type": "int",
+						"precision": 10
+					},
+					{
+						"name": "genre_id",
+						"type": "int",
+						"precision": 10
+					},
+					{
+						"name": "film_id",
+						"type": "int",
+						"precision": 10
+					}
+				],
+				"typeProperties": {
+					"schema": "dbo",
+					"table": "dim_genre_movie_assoc"
+				}
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/linkedServices/AzureSqlDatabase1')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/dim_movie')]",
+			"type": "Microsoft.DataFactory/factories/datasets",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"linkedServiceName": {
+					"referenceName": "AzureSqlDatabase1",
+					"type": "LinkedServiceReference"
+				},
+				"annotations": [],
+				"type": "AzureSqlTable",
+				"schema": [
+					{
+						"name": "film_id",
+						"type": "int",
+						"precision": 10
+					},
+					{
+						"name": "title",
+						"type": "nvarchar"
+					},
+					{
+						"name": "description",
+						"type": "nvarchar"
+					}
+				],
+				"typeProperties": {
+					"schema": "dbo",
+					"table": "dim_movie"
+				}
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/linkedServices/AzureSqlDatabase1')]"
+			]
+		},
+		{
 			"name": "[concat(parameters('factoryName'), '/map_actor')]",
 			"type": "Microsoft.DataFactory/factories/datasets",
 			"apiVersion": "2018-06-01",
@@ -827,382 +967,32 @@
 			]
 		},
 		{
-			"name": "[concat(parameters('factoryName'), '/load_map_actor')]",
+			"name": "[concat(parameters('factoryName'), '/load_dim_actor')]",
 			"type": "Microsoft.DataFactory/factories/dataflows",
 			"apiVersion": "2018-06-01",
 			"properties": {
 				"type": "MappingDataFlow",
 				"typeProperties": {
 					"sources": [
-						{
-							"dataset": {
-								"referenceName": "blob_land_movies",
-								"type": "DatasetReference"
-							},
-							"name": "source1"
-						}
-					],
-					"sinks": [
-						{
-							"dataset": {
-								"referenceName": "map_actor",
-								"type": "DatasetReference"
-							},
-							"name": "loadintomapactors"
-						}
-					],
-					"transformations": [
-						{
-							"name": "derivedColumn1"
-						},
-						{
-							"name": "flatten1"
-						},
-						{
-							"name": "aggregate1"
-						},
-						{
-							"name": "select1"
-						},
-						{
-							"name": "cleanActors"
-						}
-					],
-					"scriptLines": [
-						"source(output(",
-						"          Rank as string,",
-						"          Title as string,",
-						"          Genre as string,",
-						"          Description as string,",
-						"          Director as string,",
-						"          Actors as string,",
-						"          Year as string,",
-						"          {Runtime (Minutes)} as string,",
-						"          Rating as string,",
-						"          Votes as string,",
-						"          {Revenue (Millions)} as string,",
-						"          Metascore as string",
-						"     ),",
-						"     allowSchemaDrift: true,",
-						"     validateSchema: false,",
-						"     ignoreNoFilesFound: false) ~> source1",
-						"source1 derive(Actors = split(Actors, ',')) ~> derivedColumn1",
-						"derivedColumn1 foldDown(unroll(Actors),",
-						"     mapColumn(",
-						"          Rank,",
-						"          Title,",
-						"          Genre,",
-						"          Description,",
-						"          Director,",
-						"          Actors,",
-						"          Year,",
-						"          {Runtime (Minutes)},",
-						"          Rating,",
-						"          Votes,",
-						"          {Revenue (Millions)},",
-						"          Metascore",
-						"     ),",
-						"     skipDuplicateMapInputs: false,",
-						"     skipDuplicateMapOutputs: false) ~> flatten1",
-						"cleanActors aggregate(groupBy(Actors),",
-						"     each(match(name=='Rank'), $$ = first($$))) ~> aggregate1",
-						"aggregate1 select(mapColumn(",
-						"          Actors",
-						"     ),",
-						"     skipDuplicateMapInputs: true,",
-						"     skipDuplicateMapOutputs: true) ~> select1",
-						"flatten1 derive(Actors = trim(Actors)) ~> cleanActors",
-						"select1 sink(allowSchemaDrift: true,",
-						"     validateSchema: false,",
-						"     input(",
-						"          actor_id as integer,",
-						"          actor as string",
-						"     ),",
-						"     deletable:false,",
-						"     insertable:true,",
-						"     updateable:false,",
-						"     upsertable:false,",
-						"     format: 'table',",
-						"     skipDuplicateMapInputs: true,",
-						"     skipDuplicateMapOutputs: true,",
-						"     errorHandlingOption: 'stopOnFirstError',",
-						"     mapColumn(",
-						"          actor = Actors",
-						"     )) ~> loadintomapactors"
-					]
-				}
-			},
-			"dependsOn": [
-				"[concat(variables('factoryId'), '/datasets/blob_land_movies')]",
-				"[concat(variables('factoryId'), '/datasets/map_actor')]"
-			]
-		},
-		{
-			"name": "[concat(parameters('factoryName'), '/load_map_film')]",
-			"type": "Microsoft.DataFactory/factories/dataflows",
-			"apiVersion": "2018-06-01",
-			"properties": {
-				"type": "MappingDataFlow",
-				"typeProperties": {
-					"sources": [
-						{
-							"dataset": {
-								"referenceName": "move_db_landing",
-								"type": "DatasetReference"
-							},
-							"name": "landmovies"
-						}
-					],
-					"sinks": [
-						{
-							"dataset": {
-								"referenceName": "map_film",
-								"type": "DatasetReference"
-							},
-							"name": "sink1"
-						}
-					],
-					"transformations": [
-						{
-							"name": "select1"
-						}
-					],
-					"scriptLines": [
-						"source(output(",
-						"          Rank as integer,",
-						"          Title as string,",
-						"          Genre as string,",
-						"          Description as string,",
-						"          Director as string,",
-						"          Actors as string,",
-						"          Year as integer,",
-						"          Runtime_Minutes as integer,",
-						"          Rating as double,",
-						"          Votes as integer,",
-						"          Revenue_Millions as double,",
-						"          Metascore as integer",
-						"     ),",
-						"     allowSchemaDrift: true,",
-						"     validateSchema: false,",
-						"     isolationLevel: 'READ_UNCOMMITTED',",
-						"     format: 'table') ~> landmovies",
-						"landmovies select(mapColumn(",
-						"          Title,",
-						"          Director,",
-						"          Year",
-						"     ),",
-						"     skipDuplicateMapInputs: true,",
-						"     skipDuplicateMapOutputs: true) ~> select1",
-						"select1 sink(allowSchemaDrift: true,",
-						"     validateSchema: false,",
-						"     input(",
-						"          film_id as integer,",
-						"          title as string,",
-						"          film_year as integer,",
-						"          director as string",
-						"     ),",
-						"     deletable:false,",
-						"     insertable:true,",
-						"     updateable:false,",
-						"     upsertable:false,",
-						"     format: 'table',",
-						"     skipDuplicateMapInputs: true,",
-						"     skipDuplicateMapOutputs: true,",
-						"     errorHandlingOption: 'stopOnFirstError',",
-						"     mapColumn(",
-						"          title = Title,",
-						"          film_year = Year,",
-						"          director = Director",
-						"     )) ~> sink1"
-					]
-				}
-			},
-			"dependsOn": [
-				"[concat(variables('factoryId'), '/datasets/move_db_landing')]",
-				"[concat(variables('factoryId'), '/datasets/map_film')]"
-			]
-		},
-		{
-			"name": "[concat(parameters('factoryName'), '/load_map_genre')]",
-			"type": "Microsoft.DataFactory/factories/dataflows",
-			"apiVersion": "2018-06-01",
-			"properties": {
-				"type": "MappingDataFlow",
-				"typeProperties": {
-					"sources": [
-						{
-							"dataset": {
-								"referenceName": "blob_land_movies",
-								"type": "DatasetReference"
-							},
-							"name": "source1"
-						}
-					],
-					"sinks": [
-						{
-							"dataset": {
-								"referenceName": "map_genre",
-								"type": "DatasetReference"
-							},
-							"name": "loadintomapgenre"
-						}
-					],
-					"transformations": [
-						{
-							"name": "derivedColumn1"
-						},
-						{
-							"name": "flatten1"
-						},
-						{
-							"name": "aggregate1"
-						},
-						{
-							"name": "select1"
-						},
-						{
-							"name": "cleanGenre"
-						}
-					],
-					"scriptLines": [
-						"source(output(",
-						"          Rank as string,",
-						"          Title as string,",
-						"          Genre as string,",
-						"          Description as string,",
-						"          Director as string,",
-						"          Actors as string,",
-						"          Year as string,",
-						"          {Runtime (Minutes)} as string,",
-						"          Rating as string,",
-						"          Votes as string,",
-						"          {Revenue (Millions)} as string,",
-						"          Metascore as string",
-						"     ),",
-						"     allowSchemaDrift: true,",
-						"     validateSchema: false,",
-						"     ignoreNoFilesFound: false) ~> source1",
-						"source1 derive(Genre = split(Genre, ',')) ~> derivedColumn1",
-						"derivedColumn1 foldDown(unroll(Genre),",
-						"     mapColumn(",
-						"          Rank,",
-						"          Title,",
-						"          Genre,",
-						"          Description,",
-						"          Director,",
-						"          Actors,",
-						"          Year,",
-						"          {Runtime (Minutes)},",
-						"          Rating,",
-						"          Votes,",
-						"          {Revenue (Millions)},",
-						"          Metascore",
-						"     ),",
-						"     skipDuplicateMapInputs: false,",
-						"     skipDuplicateMapOutputs: false) ~> flatten1",
-						"cleanGenre aggregate(groupBy(Genre),",
-						"     each(match(name=='Rank'), $$ = first($$))) ~> aggregate1",
-						"aggregate1 select(mapColumn(",
-						"          Genre",
-						"     ),",
-						"     skipDuplicateMapInputs: true,",
-						"     skipDuplicateMapOutputs: true) ~> select1",
-						"flatten1 derive(Genre = trim(Genre)) ~> cleanGenre",
-						"select1 sink(allowSchemaDrift: true,",
-						"     validateSchema: false,",
-						"     input(",
-						"          genre_id as integer,",
-						"          genre as string",
-						"     ),",
-						"     deletable:false,",
-						"     insertable:true,",
-						"     updateable:false,",
-						"     upsertable:false,",
-						"     format: 'table',",
-						"     skipDuplicateMapInputs: true,",
-						"     skipDuplicateMapOutputs: true,",
-						"     errorHandlingOption: 'stopOnFirstError',",
-						"     mapColumn(",
-						"          genre = Genre",
-						"     )) ~> loadintomapgenre"
-					]
-				}
-			},
-			"dependsOn": [
-				"[concat(variables('factoryId'), '/datasets/blob_land_movies')]",
-				"[concat(variables('factoryId'), '/datasets/map_genre')]"
-			]
-		},
-		{
-			"name": "[concat(parameters('factoryName'), '/load_stg_actor')]",
-			"type": "Microsoft.DataFactory/factories/dataflows",
-			"apiVersion": "2018-06-01",
-			"properties": {
-				"type": "MappingDataFlow",
-				"typeProperties": {
-					"sources": [
-						{
-							"dataset": {
-								"referenceName": "blob_land_movies",
-								"type": "DatasetReference"
-							},
-							"name": "source1"
-						},
-						{
-							"dataset": {
-								"referenceName": "map_actor",
-								"type": "DatasetReference"
-							},
-							"name": "mapactor"
-						}
-					],
-					"sinks": [
 						{
 							"dataset": {
 								"referenceName": "stg_actor",
 								"type": "DatasetReference"
 							},
+							"name": "stgactor"
+						}
+					],
+					"sinks": [
+						{
+							"dataset": {
+								"referenceName": "dim_actor",
+								"type": "DatasetReference"
+							},
 							"name": "sink1"
 						}
 					],
-					"transformations": [
-						{
-							"name": "derivedColumn1"
-						},
-						{
-							"name": "flatten1"
-						},
-						{
-							"name": "cleanActors"
-						},
-						{
-							"name": "join1"
-						},
-						{
-							"name": "aggregate1"
-						},
-						{
-							"name": "select1"
-						}
-					],
+					"transformations": [],
 					"scriptLines": [
-						"source(output(",
-						"          Rank as string,",
-						"          Title as string,",
-						"          Genre as string,",
-						"          Description as string,",
-						"          Director as string,",
-						"          Actors as string,",
-						"          Year as string,",
-						"          {Runtime (Minutes)} as string,",
-						"          Rating as string,",
-						"          Votes as string,",
-						"          {Revenue (Millions)} as string,",
-						"          Metascore as string",
-						"     ),",
-						"     allowSchemaDrift: true,",
-						"     validateSchema: false,",
-						"     ignoreNoFilesFound: false) ~> source1",
 						"source(output(",
 						"          actor_id as integer,",
 						"          actor as string",
@@ -1210,40 +1000,8 @@
 						"     allowSchemaDrift: true,",
 						"     validateSchema: false,",
 						"     isolationLevel: 'READ_UNCOMMITTED',",
-						"     format: 'table') ~> mapactor",
-						"source1 derive(Actors = split(Actors, ',')) ~> derivedColumn1",
-						"derivedColumn1 foldDown(unroll(Actors),",
-						"     mapColumn(",
-						"          Rank,",
-						"          Title,",
-						"          Genre,",
-						"          Description,",
-						"          Director,",
-						"          Actors,",
-						"          Year,",
-						"          {Runtime (Minutes)},",
-						"          Rating,",
-						"          Votes,",
-						"          {Revenue (Millions)},",
-						"          Metascore",
-						"     ),",
-						"     skipDuplicateMapInputs: false,",
-						"     skipDuplicateMapOutputs: false) ~> flatten1",
-						"flatten1 derive(Actors = trim(Actors)) ~> cleanActors",
-						"cleanActors, mapactor join(Actors == actor,",
-						"     joinType:'inner',",
-						"     matchType:'exact',",
-						"     ignoreSpaces: false,",
-						"     broadcast: 'auto')~> join1",
-						"join1 aggregate(groupBy(Actors),",
-						"     each(match(name!='Actors'), $$ = first($$))) ~> aggregate1",
-						"aggregate1 select(mapColumn(",
-						"          actor_id,",
-						"          actor",
-						"     ),",
-						"     skipDuplicateMapInputs: true,",
-						"     skipDuplicateMapOutputs: true) ~> select1",
-						"select1 sink(allowSchemaDrift: true,",
+						"     format: 'table') ~> stgactor",
+						"stgactor sink(allowSchemaDrift: true,",
 						"     validateSchema: false,",
 						"     input(",
 						"          actor_id as integer,",
@@ -1256,192 +1014,17 @@
 						"     format: 'table',",
 						"     skipDuplicateMapInputs: true,",
 						"     skipDuplicateMapOutputs: true,",
-						"     errorHandlingOption: 'stopOnFirstError') ~> sink1"
-					]
-				}
-			},
-			"dependsOn": [
-				"[concat(variables('factoryId'), '/datasets/blob_land_movies')]",
-				"[concat(variables('factoryId'), '/datasets/map_actor')]",
-				"[concat(variables('factoryId'), '/datasets/stg_actor')]"
-			]
-		},
-		{
-			"name": "[concat(parameters('factoryName'), '/load_stg_actor_film_assoc')]",
-			"type": "Microsoft.DataFactory/factories/dataflows",
-			"apiVersion": "2018-06-01",
-			"properties": {
-				"type": "MappingDataFlow",
-				"typeProperties": {
-					"sources": [
-						{
-							"dataset": {
-								"referenceName": "blob_land_movies",
-								"type": "DatasetReference"
-							},
-							"name": "source1"
-						},
-						{
-							"dataset": {
-								"referenceName": "map_actor",
-								"type": "DatasetReference"
-							},
-							"name": "mapactor"
-						},
-						{
-							"dataset": {
-								"referenceName": "map_film",
-								"type": "DatasetReference"
-							},
-							"name": "mapfilm"
-						}
-					],
-					"sinks": [
-						{
-							"dataset": {
-								"referenceName": "stg_actor_film_assoc",
-								"type": "DatasetReference"
-							},
-							"name": "sink1"
-						}
-					],
-					"transformations": [
-						{
-							"name": "derivedColumn1"
-						},
-						{
-							"name": "flatten1"
-						},
-						{
-							"name": "cleanActors"
-						},
-						{
-							"name": "join1"
-						},
-						{
-							"name": "select2"
-						},
-						{
-							"name": "join2"
-						},
-						{
-							"name": "select3"
-						},
-						{
-							"name": "select4"
-						}
-					],
-					"scriptLines": [
-						"source(output(",
-						"          Rank as string,",
-						"          Title as string,",
-						"          Genre as string,",
-						"          Description as string,",
-						"          Director as string,",
-						"          Actors as string,",
-						"          Year as string,",
-						"          {Runtime (Minutes)} as string,",
-						"          Rating as string,",
-						"          Votes as string,",
-						"          {Revenue (Millions)} as string,",
-						"          Metascore as string",
-						"     ),",
-						"     allowSchemaDrift: true,",
-						"     validateSchema: false,",
-						"     ignoreNoFilesFound: false) ~> source1",
-						"source(output(",
-						"          actor_id as integer,",
-						"          actor as string",
-						"     ),",
-						"     allowSchemaDrift: true,",
-						"     validateSchema: false,",
-						"     isolationLevel: 'READ_UNCOMMITTED',",
-						"     format: 'table') ~> mapactor",
-						"source(output(",
-						"          film_id as integer,",
-						"          title as string,",
-						"          film_year as integer,",
-						"          director as string",
-						"     ),",
-						"     allowSchemaDrift: true,",
-						"     validateSchema: false,",
-						"     isolationLevel: 'READ_UNCOMMITTED',",
-						"     format: 'table') ~> mapfilm",
-						"source1 derive(Actors = split(Actors, ',')) ~> derivedColumn1",
-						"derivedColumn1 foldDown(unroll(Actors),",
-						"     mapColumn(",
-						"          Rank,",
-						"          Title,",
-						"          Genre,",
-						"          Description,",
-						"          Director,",
-						"          Actors,",
-						"          Year,",
-						"          {Runtime (Minutes)},",
-						"          Rating,",
-						"          Votes,",
-						"          {Revenue (Millions)},",
-						"          Metascore",
-						"     ),",
-						"     skipDuplicateMapInputs: false,",
-						"     skipDuplicateMapOutputs: false) ~> flatten1",
-						"flatten1 derive(Actors = trim(Actors)) ~> cleanActors",
-						"select2, mapfilm join(select2@Title == mapfilm@title",
-						"     && select2@Director == mapfilm@director,",
-						"     joinType:'inner',",
-						"     matchType:'exact',",
-						"     ignoreSpaces: false,",
-						"     broadcast: 'auto')~> join1",
-						"cleanActors select(mapColumn(",
-						"          Actors,",
-						"          Title,",
-						"          Director,",
-						"          Year",
-						"     ),",
-						"     skipDuplicateMapInputs: false,",
-						"     skipDuplicateMapOutputs: false) ~> select2",
-						"select3, mapactor join(Actors == actor,",
-						"     joinType:'inner',",
-						"     matchType:'exact',",
-						"     ignoreSpaces: false,",
-						"     broadcast: 'off')~> join2",
-						"join1 select(mapColumn(",
-						"          Actors,",
-						"          film_id",
-						"     ),",
-						"     skipDuplicateMapInputs: true,",
-						"     skipDuplicateMapOutputs: true) ~> select3",
-						"join2 select(mapColumn(",
-						"          film_id,",
-						"          actor_id",
-						"     ),",
-						"     skipDuplicateMapInputs: true,",
-						"     skipDuplicateMapOutputs: true) ~> select4",
-						"select4 sink(allowSchemaDrift: true,",
-						"     validateSchema: false,",
-						"     input(",
-						"          stg_actor_film_id as integer,",
-						"          actor_id as integer,",
-						"          film_id as integer",
-						"     ),",
-						"     deletable:false,",
-						"     insertable:true,",
-						"     updateable:false,",
-						"     upsertable:false,",
-						"     format: 'table',",
 						"     errorHandlingOption: 'stopOnFirstError',",
 						"     mapColumn(",
 						"          actor_id,",
-						"          film_id",
+						"          actor",
 						"     )) ~> sink1"
 					]
 				}
 			},
 			"dependsOn": [
-				"[concat(variables('factoryId'), '/datasets/blob_land_movies')]",
-				"[concat(variables('factoryId'), '/datasets/map_actor')]",
-				"[concat(variables('factoryId'), '/datasets/map_film')]",
-				"[concat(variables('factoryId'), '/datasets/stg_actor_film_assoc')]"
+				"[concat(variables('factoryId'), '/datasets/stg_actor')]",
+				"[concat(variables('factoryId'), '/datasets/dim_actor')]"
 			]
 		}
 	]
