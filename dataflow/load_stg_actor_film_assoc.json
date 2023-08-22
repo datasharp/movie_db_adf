@@ -48,6 +48,9 @@
 				},
 				{
 					"name": "select2"
+				},
+				{
+					"name": "derivedColumn2"
 				}
 			],
 			"scriptLines": [
@@ -105,7 +108,7 @@
 				"     skipDuplicateMapInputs: false,",
 				"     skipDuplicateMapOutputs: false) ~> flatten1",
 				"flatten1 derive(Actors = trim(Actors)) ~> cleanActors",
-				"select2, mapactor join(Actors == actor,",
+				"select2, derivedColumn2 join(Actors == actor,",
 				"     joinType:'inner',",
 				"     matchType:'exact',",
 				"     ignoreSpaces: false,",
@@ -118,7 +121,8 @@
 				"     broadcast: 'auto')~> join2",
 				"join2 select(mapColumn(",
 				"          actor_id,",
-				"          film_id",
+				"          film_id,",
+				"          actor",
 				"     ),",
 				"     skipDuplicateMapInputs: true,",
 				"     skipDuplicateMapOutputs: true) ~> select1",
@@ -129,7 +133,8 @@
 				"          Year",
 				"     ),",
 				"     skipDuplicateMapInputs: true,",
-				"     skipDuplicateMapOutputs: true) ~> select2"
+				"     skipDuplicateMapOutputs: true) ~> select2",
+				"mapactor derive(actor = trim(actor)) ~> derivedColumn2"
 			]
 		}
 	}
