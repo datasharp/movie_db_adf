@@ -26,7 +26,15 @@
 					"name": "mapfilm"
 				}
 			],
-			"sinks": [],
+			"sinks": [
+				{
+					"dataset": {
+						"referenceName": "stg_genre_film_assoc",
+						"type": "DatasetReference"
+					},
+					"name": "sink1"
+				}
+			],
 			"transformations": [
 				{
 					"name": "derivedColumn1"
@@ -114,11 +122,30 @@
 				"     ignoreSpaces: false,",
 				"     broadcast: 'auto')~> join2",
 				"join2 select(mapColumn(",
-				"          genre = mapgenre@genre,",
-				"          film_id",
+				"          film_id,",
+				"          genre_id",
 				"     ),",
 				"     skipDuplicateMapInputs: true,",
-				"     skipDuplicateMapOutputs: true) ~> select1"
+				"     skipDuplicateMapOutputs: true) ~> select1",
+				"select1 sink(allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     input(",
+				"          stg_genre_film_id as integer,",
+				"          genre_id as integer,",
+				"          film_id as integer",
+				"     ),",
+				"     deletable:false,",
+				"     insertable:true,",
+				"     updateable:false,",
+				"     upsertable:false,",
+				"     format: 'table',",
+				"     skipDuplicateMapInputs: true,",
+				"     skipDuplicateMapOutputs: true,",
+				"     errorHandlingOption: 'stopOnFirstError',",
+				"     mapColumn(",
+				"          genre_id,",
+				"          film_id",
+				"     )) ~> sink1"
 			]
 		}
 	}

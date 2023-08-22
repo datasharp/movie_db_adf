@@ -1,0 +1,32 @@
+{
+	"name": "stg_genre_film_assoc",
+	"properties": {
+		"linkedServiceName": {
+			"referenceName": "AzureSqlDatabase1",
+			"type": "LinkedServiceReference"
+		},
+		"annotations": [],
+		"type": "AzureSqlTable",
+		"schema": [
+			{
+				"name": "stg_genre_film_id",
+				"type": "int",
+				"precision": 10
+			},
+			{
+				"name": "genre_id",
+				"type": "int",
+				"precision": 10
+			},
+			{
+				"name": "film_id",
+				"type": "int",
+				"precision": 10
+			}
+		],
+		"typeProperties": {
+			"schema": "dbo",
+			"table": "stg_genre_film_assoc"
+		}
+	}
+}
