@@ -44,9 +44,6 @@
 					"name": "select2"
 				},
 				{
-					"name": "derivedColumn2"
-				},
-				{
 					"name": "join2"
 				},
 				{
@@ -125,23 +122,22 @@
 				"     ),",
 				"     skipDuplicateMapInputs: false,",
 				"     skipDuplicateMapOutputs: false) ~> select2",
-				"mapactor derive(actor = trim(actor)) ~> derivedColumn2",
 				"select3, mapactor join(Actors == actor,",
-				"     joinType:'inner',",
+				"     joinType:'left',",
 				"     matchType:'exact',",
 				"     ignoreSpaces: false,",
-				"     broadcast: 'auto')~> join2",
+				"     broadcast: 'off')~> join2",
 				"join1 select(mapColumn(",
 				"          Actors,",
 				"          film_id",
 				"     ),",
 				"     skipDuplicateMapInputs: true,",
 				"     skipDuplicateMapOutputs: true) ~> select3",
-				"derivedColumn2, select3 join(actor == Actors,",
-				"     joinType:'inner',",
+				"mapactor, join1 join(actor === Actors,",
+				"     joinType:'left',",
 				"     matchType:'exact',",
 				"     ignoreSpaces: false,",
-				"     broadcast: 'auto')~> join3"
+				"     broadcast: 'off')~> join3"
 			]
 		}
 	}
