@@ -41,16 +41,19 @@
 					"name": "join1"
 				},
 				{
-					"name": "join2"
-				},
-				{
-					"name": "select1"
-				},
-				{
 					"name": "select2"
 				},
 				{
 					"name": "derivedColumn2"
+				},
+				{
+					"name": "join2"
+				},
+				{
+					"name": "select3"
+				},
+				{
+					"name": "join3"
 				}
 			],
 			"scriptLines": [
@@ -108,33 +111,37 @@
 				"     skipDuplicateMapInputs: false,",
 				"     skipDuplicateMapOutputs: false) ~> flatten1",
 				"flatten1 derive(Actors = trim(Actors)) ~> cleanActors",
-				"select2, derivedColumn2 join(Actors == actor,",
-				"     joinType:'inner',",
-				"     matchType:'exact',",
-				"     ignoreSpaces: false,",
-				"     broadcast: 'auto')~> join1",
-				"join1, mapfilm join(select2@Title == mapfilm@title",
+				"select2, mapfilm join(select2@Title == mapfilm@title",
 				"     && select2@Director == mapfilm@director,",
 				"     joinType:'inner',",
 				"     matchType:'exact',",
 				"     ignoreSpaces: false,",
-				"     broadcast: 'auto')~> join2",
-				"join2 select(mapColumn(",
-				"          actor_id,",
-				"          film_id,",
-				"          actor",
-				"     ),",
-				"     skipDuplicateMapInputs: true,",
-				"     skipDuplicateMapOutputs: true) ~> select1",
+				"     broadcast: 'auto')~> join1",
 				"cleanActors select(mapColumn(",
+				"          Actors,",
 				"          Title,",
 				"          Director,",
-				"          Actors,",
 				"          Year",
 				"     ),",
+				"     skipDuplicateMapInputs: false,",
+				"     skipDuplicateMapOutputs: false) ~> select2",
+				"mapactor derive(actor = trim(actor)) ~> derivedColumn2",
+				"select3, mapactor join(Actors == actor,",
+				"     joinType:'inner',",
+				"     matchType:'exact',",
+				"     ignoreSpaces: false,",
+				"     broadcast: 'auto')~> join2",
+				"join1 select(mapColumn(",
+				"          Actors,",
+				"          film_id",
+				"     ),",
 				"     skipDuplicateMapInputs: true,",
-				"     skipDuplicateMapOutputs: true) ~> select2",
-				"mapactor derive(actor = trim(actor)) ~> derivedColumn2"
+				"     skipDuplicateMapOutputs: true) ~> select3",
+				"derivedColumn2, select3 join(actor == Actors,",
+				"     joinType:'inner',",
+				"     matchType:'exact',",
+				"     ignoreSpaces: false,",
+				"     broadcast: 'auto')~> join3"
 			]
 		}
 	}
