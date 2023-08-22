@@ -1,5 +1,5 @@
 {
-	"name": "dataflow1",
+	"name": "load_dim_genre_movie_assoc",
 	"properties": {
 		"type": "MappingDataFlow",
 		"typeProperties": {
