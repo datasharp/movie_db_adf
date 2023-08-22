@@ -22,7 +22,7 @@
 			"sinks": [
 				{
 					"dataset": {
-						"referenceName": "AzureSqlTable2",
+						"referenceName": "stg_actor",
 						"type": "DatasetReference"
 					},
 					"name": "sink1"
@@ -99,7 +99,7 @@
 				"     ignoreSpaces: false,",
 				"     broadcast: 'auto')~> join1",
 				"join1 aggregate(groupBy(Actors),",
-				"     each(match(name != 'Actors'), $$ = first($$))) ~> aggregate1",
+				"     each(match(name!='Actors'), $$ = first($$))) ~> aggregate1",
 				"aggregate1 select(mapColumn(",
 				"          actor_id,",
 				"          actor",

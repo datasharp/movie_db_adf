@@ -1,5 +1,5 @@
 {
-	"name": "AzureSqlTable1",
+	"name": "stg_actor_film_assoc",
 	"properties": {
 		"linkedServiceName": {
 			"referenceName": "AzureSqlDatabase1",

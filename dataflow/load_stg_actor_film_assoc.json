@@ -29,7 +29,7 @@
 			"sinks": [
 				{
 					"dataset": {
-						"referenceName": "AzureSqlTable1",
+						"referenceName": "stg_actor_film_assoc",
 						"type": "DatasetReference"
 					},
 					"name": "sink1"
