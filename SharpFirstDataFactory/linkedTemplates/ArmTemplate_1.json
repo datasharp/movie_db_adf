@@ -118,7 +118,7 @@
 			"dependsOn": []
 		},
 		{
-			"name": "[concat(parameters('factoryName'), '/01_blob_landing_to_database_land_movies')]",
+			"name": "[concat(parameters('factoryName'), '/Extract')]",
 			"type": "Microsoft.DataFactory/factories/pipelines",
 			"apiVersion": "2018-06-01",
 			"properties": {
@@ -556,15 +556,12 @@
 								"referenceName": "dim_movie",
 								"type": "DatasetReference"
 							},
-							"name": "sink1"
+							"name": "sink2"
 						}
 					],
 					"transformations": [
 						{
 							"name": "join1"
-						},
-						{
-							"name": "select1"
 						}
 					],
 					"scriptLines": [
@@ -599,14 +596,7 @@
 						"     matchType:'exact',",
 						"     ignoreSpaces: false,",
 						"     broadcast: 'auto')~> join1",
-						"join1 select(mapColumn(",
-						"          film_id = mapfilm@film_id,",
-						"          title = mapfilm@title,",
-						"          description",
-						"     ),",
-						"     skipDuplicateMapInputs: true,",
-						"     skipDuplicateMapOutputs: true) ~> select1",
-						"select1 sink(allowSchemaDrift: true,",
+						"join1 sink(allowSchemaDrift: true,",
 						"     validateSchema: false,",
 						"     input(",
 						"          film_id as integer,",
@@ -620,12 +610,7 @@
 						"     format: 'table',",
 						"     skipDuplicateMapInputs: true,",
 						"     skipDuplicateMapOutputs: true,",
-						"     errorHandlingOption: 'stopOnFirstError',",
-						"     mapColumn(",
-						"          film_id,",
-						"          title,",
-						"          description",
-						"     )) ~> sink1"
+						"     errorHandlingOption: 'stopOnFirstError') ~> sink2"
 					]
 				}
 			},
