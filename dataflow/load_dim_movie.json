@@ -71,7 +71,7 @@
 				"join1 select(mapColumn(",
 				"          film_id = mapfilm@film_id,",
 				"          title = mapfilm@title,",
-				"          director = mapfilm@director",
+				"          description",
 				"     ),",
 				"     skipDuplicateMapInputs: true,",
 				"     skipDuplicateMapOutputs: true) ~> select1",
@@ -89,7 +89,12 @@
 				"     format: 'table',",
 				"     skipDuplicateMapInputs: true,",
 				"     skipDuplicateMapOutputs: true,",
-				"     errorHandlingOption: 'stopOnFirstError') ~> sink1"
+				"     errorHandlingOption: 'stopOnFirstError',",
+				"     mapColumn(",
+				"          film_id,",
+				"          title,",
+				"          description",
+				"     )) ~> sink1"
 			]
 		}
 	}
