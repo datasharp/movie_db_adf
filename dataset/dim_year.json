@@ -1,0 +1,27 @@
+{
+	"name": "dim_year",
+	"properties": {
+		"linkedServiceName": {
+			"referenceName": "AzureSqlDatabase1",
+			"type": "LinkedServiceReference"
+		},
+		"annotations": [],
+		"type": "AzureSqlTable",
+		"schema": [
+			{
+				"name": "date_id",
+				"type": "int",
+				"precision": 10
+			},
+			{
+				"name": "year",
+				"type": "int",
+				"precision": 10
+			}
+		],
+		"typeProperties": {
+			"schema": "dbo",
+			"table": "dim_year"
+		}
+	}
+}

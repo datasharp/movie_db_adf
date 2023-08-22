@@ -1,0 +1,96 @@
+{
+	"name": "load_dim_year",
+	"properties": {
+		"type": "MappingDataFlow",
+		"typeProperties": {
+			"sources": [
+				{
+					"dataset": {
+						"referenceName": "map_year",
+						"type": "DatasetReference"
+					},
+					"name": "mapyear"
+				},
+				{
+					"dataset": {
+						"referenceName": "stg_film",
+						"type": "DatasetReference"
+					},
+					"name": "stgfilm"
+				}
+			],
+			"sinks": [
+				{
+					"dataset": {
+						"referenceName": "dim_year",
+						"type": "DatasetReference"
+					},
+					"name": "sink1"
+				}
+			],
+			"transformations": [
+				{
+					"name": "join1"
+				},
+				{
+					"name": "select1"
+				}
+			],
+			"scriptLines": [
+				"source(output(",
+				"          year_id as integer,",
+				"          year as integer",
+				"     ),",
+				"     allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     isolationLevel: 'READ_UNCOMMITTED',",
+				"     format: 'table') ~> mapyear",
+				"source(output(",
+				"          film_id as integer,",
+				"          title as string,",
+				"          description as string,",
+				"          director as string,",
+				"          film_year as integer,",
+				"          runtime_minutes as integer,",
+				"          rating as double,",
+				"          votes as integer,",
+				"          revenue_millions as double,",
+				"          metascore as integer",
+				"     ),",
+				"     allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     isolationLevel: 'READ_UNCOMMITTED',",
+				"     format: 'table') ~> stgfilm",
+				"stgfilm, mapyear join(film_year == year,",
+				"     joinType:'inner',",
+				"     matchType:'exact',",
+				"     ignoreSpaces: false,",
+				"     broadcast: 'auto')~> join1",
+				"join1 select(mapColumn(",
+				"          year_id,",
+				"          film_year",
+				"     ),",
+				"     skipDuplicateMapInputs: true,",
+				"     skipDuplicateMapOutputs: true) ~> select1",
+				"select1 sink(allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     input(",
+				"          date_id as integer,",
+				"          year as integer",
+				"     ),",
+				"     deletable:false,",
+				"     insertable:true,",
+				"     updateable:false,",
+				"     upsertable:false,",
+				"     format: 'table',",
+				"     skipDuplicateMapInputs: true,",
+				"     skipDuplicateMapOutputs: true,",
+				"     errorHandlingOption: 'stopOnFirstError',",
+				"     mapColumn(",
+				"          date_id = year_id,",
+				"          year = film_year",
+				"     )) ~> sink1"
+			]
+		}
+	}
+}
