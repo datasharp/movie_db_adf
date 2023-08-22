@@ -34,6 +34,9 @@
 				},
 				{
 					"name": "select1"
+				},
+				{
+					"name": "select2"
 				}
 			],
 			"scriptLines": [
@@ -75,6 +78,24 @@
 				"     ),",
 				"     skipDuplicateMapInputs: true,",
 				"     skipDuplicateMapOutputs: true) ~> select1",
+				"join1 select(mapColumn(",
+				"          film_id = stgfilm@film_id,",
+				"          title = stgfilm@title,",
+				"          description,",
+				"          director = stgfilm@director,",
+				"          film_year = stgfilm@film_year,",
+				"          runtime_minutes,",
+				"          rating,",
+				"          votes,",
+				"          revenue_millions,",
+				"          metascore,",
+				"          film_id = mapfilm@film_id,",
+				"          title = mapfilm@title,",
+				"          film_year = mapfilm@film_year,",
+				"          director = mapfilm@director",
+				"     ),",
+				"     skipDuplicateMapInputs: true,",
+				"     skipDuplicateMapOutputs: true) ~> select2",
 				"select1 sink(allowSchemaDrift: true,",
 				"     validateSchema: false,",
 				"     input(",
@@ -83,9 +104,10 @@
 				"          description as string",
 				"     ),",
 				"     deletable:false,",
-				"     insertable:true,",
-				"     updateable:false,",
+				"     insertable:false,",
+				"     updateable:true,",
 				"     upsertable:false,",
+				"     keys:['film_id'],",
 				"     format: 'table',",
 				"     skipDuplicateMapInputs: true,",
 				"     skipDuplicateMapOutputs: true,",
