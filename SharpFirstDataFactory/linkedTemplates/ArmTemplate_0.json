@@ -347,6 +347,68 @@
 			]
 		},
 		{
+			"name": "[concat(parameters('factoryName'), '/fact_film')]",
+			"type": "Microsoft.DataFactory/factories/datasets",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"linkedServiceName": {
+					"referenceName": "AzureSqlDatabase1",
+					"type": "LinkedServiceReference"
+				},
+				"annotations": [],
+				"type": "AzureSqlTable",
+				"schema": [
+					{
+						"name": "runtime_minutes",
+						"type": "float",
+						"precision": 15
+					},
+					{
+						"name": "rating",
+						"type": "float",
+						"precision": 15
+					},
+					{
+						"name": "revenue_millions",
+						"type": "float",
+						"precision": 15
+					},
+					{
+						"name": "votes",
+						"type": "int",
+						"precision": 10
+					},
+					{
+						"name": "metascore",
+						"type": "int",
+						"precision": 10
+					},
+					{
+						"name": "film_id",
+						"type": "int",
+						"precision": 10
+					},
+					{
+						"name": "director_id",
+						"type": "int",
+						"precision": 10
+					},
+					{
+						"name": "year_id",
+						"type": "int",
+						"precision": 10
+					}
+				],
+				"typeProperties": {
+					"schema": "dbo",
+					"table": "fact_film"
+				}
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/linkedServices/AzureSqlDatabase1')]"
+			]
+		},
+		{
 			"name": "[concat(parameters('factoryName'), '/map_actor')]",
 			"type": "Microsoft.DataFactory/factories/datasets",
 			"apiVersion": "2018-06-01",
@@ -740,40 +802,6 @@
 				"typeProperties": {
 					"schema": "dbo",
 					"table": "stg_film"
-				}
-			},
-			"dependsOn": [
-				"[concat(variables('factoryId'), '/linkedServices/AzureSqlDatabase1')]"
-			]
-		},
-		{
-			"name": "[concat(parameters('factoryName'), '/stg_genre')]",
-			"type": "Microsoft.DataFactory/factories/datasets",
-			"apiVersion": "2018-06-01",
-			"properties": {
-				"linkedServiceName": {
-					"referenceName": "AzureSqlDatabase1",
-					"type": "LinkedServiceReference"
-				},
-				"folder": {
-					"name": "02 stg and map"
-				},
-				"annotations": [],
-				"type": "AzureSqlTable",
-				"schema": [
-					{
-						"name": "genre_id",
-						"type": "int",
-						"precision": 10
-					},
-					{
-						"name": "genre",
-						"type": "nvarchar"
-					}
-				],
-				"typeProperties": {
-					"schema": "dbo",
-					"table": "stg_genre"
 				}
 			},
 			"dependsOn": [
