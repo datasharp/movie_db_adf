@@ -1,0 +1,27 @@
+{
+	"name": "map_year",
+	"properties": {
+		"linkedServiceName": {
+			"referenceName": "AzureSqlDatabase1",
+			"type": "LinkedServiceReference"
+		},
+		"annotations": [],
+		"type": "AzureSqlTable",
+		"schema": [
+			{
+				"name": "year_id",
+				"type": "int",
+				"precision": 10
+			},
+			{
+				"name": "year",
+				"type": "int",
+				"precision": 10
+			}
+		],
+		"typeProperties": {
+			"schema": "dbo",
+			"table": "map_year"
+		}
+	}
+}
