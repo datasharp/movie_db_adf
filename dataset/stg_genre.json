@@ -1,0 +1,26 @@
+{
+	"name": "stg_genre",
+	"properties": {
+		"linkedServiceName": {
+			"referenceName": "AzureSqlDatabase1",
+			"type": "LinkedServiceReference"
+		},
+		"annotations": [],
+		"type": "AzureSqlTable",
+		"schema": [
+			{
+				"name": "genre_id",
+				"type": "int",
+				"precision": 10
+			},
+			{
+				"name": "genre",
+				"type": "nvarchar"
+			}
+		],
+		"typeProperties": {
+			"schema": "dbo",
+			"table": "stg_genre"
+		}
+	}
+}

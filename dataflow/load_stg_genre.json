@@ -1,0 +1,138 @@
+{
+	"name": "load_stg_genre",
+	"properties": {
+		"type": "MappingDataFlow",
+		"typeProperties": {
+			"sources": [
+				{
+					"dataset": {
+						"referenceName": "blob_land_movies",
+						"type": "DatasetReference"
+					},
+					"name": "source1"
+				},
+				{
+					"dataset": {
+						"referenceName": "map_genre",
+						"type": "DatasetReference"
+					},
+					"name": "mapgenre"
+				}
+			],
+			"sinks": [
+				{
+					"dataset": {
+						"referenceName": "stg_genre",
+						"type": "DatasetReference"
+					},
+					"name": "sink1"
+				}
+			],
+			"transformations": [
+				{
+					"name": "derivedColumn1"
+				},
+				{
+					"name": "flatten1"
+				},
+				{
+					"name": "aggregate1"
+				},
+				{
+					"name": "select1"
+				},
+				{
+					"name": "cleanGenre"
+				},
+				{
+					"name": "join1"
+				},
+				{
+					"name": "select2"
+				}
+			],
+			"scriptLines": [
+				"source(output(",
+				"          Rank as string,",
+				"          Title as string,",
+				"          Genre as string,",
+				"          Description as string,",
+				"          Director as string,",
+				"          Actors as string,",
+				"          Year as string,",
+				"          {Runtime (Minutes)} as string,",
+				"          Rating as string,",
+				"          Votes as string,",
+				"          {Revenue (Millions)} as string,",
+				"          Metascore as string",
+				"     ),",
+				"     allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     ignoreNoFilesFound: false) ~> source1",
+				"source(output(",
+				"          genre_id as integer,",
+				"          genre as string",
+				"     ),",
+				"     allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     isolationLevel: 'READ_UNCOMMITTED',",
+				"     format: 'table') ~> mapgenre",
+				"source1 derive(Genre = split(Genre, ',')) ~> derivedColumn1",
+				"derivedColumn1 foldDown(unroll(Genre),",
+				"     mapColumn(",
+				"          Rank,",
+				"          Title,",
+				"          Genre,",
+				"          Description,",
+				"          Director,",
+				"          Actors,",
+				"          Year,",
+				"          {Runtime (Minutes)},",
+				"          Rating,",
+				"          Votes,",
+				"          {Revenue (Millions)},",
+				"          Metascore",
+				"     ),",
+				"     skipDuplicateMapInputs: false,",
+				"     skipDuplicateMapOutputs: false) ~> flatten1",
+				"cleanGenre aggregate(groupBy(Genre),",
+				"     each(match(name=='Rank'), $$ = first($$))) ~> aggregate1",
+				"aggregate1 select(mapColumn(",
+				"          Genre",
+				"     ),",
+				"     skipDuplicateMapInputs: true,",
+				"     skipDuplicateMapOutputs: true) ~> select1",
+				"flatten1 derive(Genre = trim(Genre)) ~> cleanGenre",
+				"select1, mapgenre join(select1@Genre == mapgenre@genre,",
+				"     joinType:'inner',",
+				"     matchType:'exact',",
+				"     ignoreSpaces: false,",
+				"     broadcast: 'auto')~> join1",
+				"join1 select(mapColumn(",
+				"          Genre = select1@Genre,",
+				"          genre_id",
+				"     ),",
+				"     skipDuplicateMapInputs: true,",
+				"     skipDuplicateMapOutputs: true) ~> select2",
+				"select2 sink(allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     input(",
+				"          genre_id as integer,",
+				"          genre as string",
+				"     ),",
+				"     deletable:false,",
+				"     insertable:true,",
+				"     updateable:false,",
+				"     upsertable:false,",
+				"     format: 'table',",
+				"     skipDuplicateMapInputs: true,",
+				"     skipDuplicateMapOutputs: true,",
+				"     errorHandlingOption: 'stopOnFirstError',",
+				"     mapColumn(",
+				"          genre_id,",
+				"          genre = Genre",
+				"     )) ~> sink1"
+			]
+		}
+	}
+}
