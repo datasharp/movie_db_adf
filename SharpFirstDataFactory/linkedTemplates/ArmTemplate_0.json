@@ -435,6 +435,37 @@
 			]
 		},
 		{
+			"name": "[concat(parameters('factoryName'), '/AzureSqlTable2')]",
+			"type": "Microsoft.DataFactory/factories/datasets",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"linkedServiceName": {
+					"referenceName": "AzureSqlDatabase1",
+					"type": "LinkedServiceReference"
+				},
+				"annotations": [],
+				"type": "AzureSqlTable",
+				"schema": [
+					{
+						"name": "actor_id",
+						"type": "int",
+						"precision": 10
+					},
+					{
+						"name": "actor",
+						"type": "nvarchar"
+					}
+				],
+				"typeProperties": {
+					"schema": "dbo",
+					"table": "stg_actor"
+				}
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/linkedServices/AzureSqlDatabase1')]"
+			]
+		},
+		{
 			"name": "[concat(parameters('factoryName'), '/01_blob_landing_to_database_land_movies')]",
 			"type": "Microsoft.DataFactory/factories/pipelines",
 			"apiVersion": "2018-06-01",
@@ -1160,6 +1191,139 @@
 			]
 		},
 		{
+			"name": "[concat(parameters('factoryName'), '/load_stg_actor')]",
+			"type": "Microsoft.DataFactory/factories/dataflows",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"type": "MappingDataFlow",
+				"typeProperties": {
+					"sources": [
+						{
+							"dataset": {
+								"referenceName": "blob_land_movies",
+								"type": "DatasetReference"
+							},
+							"name": "source1"
+						},
+						{
+							"dataset": {
+								"referenceName": "map_actor",
+								"type": "DatasetReference"
+							},
+							"name": "mapactor"
+						}
+					],
+					"sinks": [
+						{
+							"dataset": {
+								"referenceName": "AzureSqlTable2",
+								"type": "DatasetReference"
+							},
+							"name": "sink1"
+						}
+					],
+					"transformations": [
+						{
+							"name": "derivedColumn1"
+						},
+						{
+							"name": "flatten1"
+						},
+						{
+							"name": "cleanActors"
+						},
+						{
+							"name": "join1"
+						},
+						{
+							"name": "aggregate1"
+						},
+						{
+							"name": "select1"
+						}
+					],
+					"scriptLines": [
+						"source(output(",
+						"          Rank as string,",
+						"          Title as string,",
+						"          Genre as string,",
+						"          Description as string,",
+						"          Director as string,",
+						"          Actors as string,",
+						"          Year as string,",
+						"          {Runtime (Minutes)} as string,",
+						"          Rating as string,",
+						"          Votes as string,",
+						"          {Revenue (Millions)} as string,",
+						"          Metascore as string",
+						"     ),",
+						"     allowSchemaDrift: true,",
+						"     validateSchema: false,",
+						"     ignoreNoFilesFound: false) ~> source1",
+						"source(output(",
+						"          actor_id as integer,",
+						"          actor as string",
+						"     ),",
+						"     allowSchemaDrift: true,",
+						"     validateSchema: false,",
+						"     isolationLevel: 'READ_UNCOMMITTED',",
+						"     format: 'table') ~> mapactor",
+						"source1 derive(Actors = split(Actors, ',')) ~> derivedColumn1",
+						"derivedColumn1 foldDown(unroll(Actors),",
+						"     mapColumn(",
+						"          Rank,",
+						"          Title,",
+						"          Genre,",
+						"          Description,",
+						"          Director,",
+						"          Actors,",
+						"          Year,",
+						"          {Runtime (Minutes)},",
+						"          Rating,",
+						"          Votes,",
+						"          {Revenue (Millions)},",
+						"          Metascore",
+						"     ),",
+						"     skipDuplicateMapInputs: false,",
+						"     skipDuplicateMapOutputs: false) ~> flatten1",
+						"flatten1 derive(Actors = trim(Actors)) ~> cleanActors",
+						"cleanActors, mapactor join(Actors == actor,",
+						"     joinType:'inner',",
+						"     matchType:'exact',",
+						"     ignoreSpaces: false,",
+						"     broadcast: 'auto')~> join1",
+						"join1 aggregate(groupBy(Actors),",
+						"     each(match(name != 'Actors'), $$ = first($$))) ~> aggregate1",
+						"aggregate1 select(mapColumn(",
+						"          actor_id,",
+						"          actor",
+						"     ),",
+						"     skipDuplicateMapInputs: true,",
+						"     skipDuplicateMapOutputs: true) ~> select1",
+						"select1 sink(allowSchemaDrift: true,",
+						"     validateSchema: false,",
+						"     input(",
+						"          actor_id as integer,",
+						"          actor as string",
+						"     ),",
+						"     deletable:false,",
+						"     insertable:true,",
+						"     updateable:false,",
+						"     upsertable:false,",
+						"     format: 'table',",
+						"     skipDuplicateMapInputs: true,",
+						"     skipDuplicateMapOutputs: true,",
+						"     errorHandlingOption: 'stopOnFirstError') ~> sink1"
+					]
+				}
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/datasets/blob_land_movies')]",
+				"[concat(variables('factoryId'), '/datasets/map_actor')]",
+				"[concat(variables('factoryId'), '/datasets/AzureSqlTable2')]"
+			]
+		},
+		{
 			"name": "[concat(parameters('factoryName'), '/02_load_map_film')]",
 			"type": "Microsoft.DataFactory/factories/pipelines",
 			"apiVersion": "2018-06-01",
@@ -1302,55 +1466,6 @@
 			},
 			"dependsOn": [
 				"[concat(variables('factoryId'), '/dataflows/load_map_actor')]"
-			]
-		},
-		{
-			"name": "[concat(parameters('factoryName'), '/05_stg_load_actor_film_assoc')]",
-			"type": "Microsoft.DataFactory/factories/pipelines",
-			"apiVersion": "2018-06-01",
-			"properties": {
-				"activities": [
-					{
-						"name": "load_stg_actor_film_assoc",
-						"type": "ExecuteDataFlow",
-						"dependsOn": [],
-						"policy": {
-							"timeout": "0.12:00:00",
-							"retry": 0,
-							"retryIntervalInSeconds": 30,
-							"secureOutput": false,
-							"secureInput": false
-						},
-						"userProperties": [],
-						"typeProperties": {
-							"dataflow": {
-								"referenceName": "load_stg_actor_film_assoc",
-								"type": "DataFlowReference",
-								"parameters": {},
-								"datasetParameters": {
-									"source1": {},
-									"mapactor": {},
-									"mapfilm": {},
-									"sink1": {}
-								}
-							},
-							"staging": {},
-							"compute": {
-								"coreCount": 8,
-								"computeType": "General"
-							},
-							"traceLevel": "Fine"
-						}
-					}
-				],
-				"policy": {
-					"elapsedTimeMetric": {},
-					"cancelAfter": {}
-				},
-				"annotations": []
-			},
-			"dependsOn": [
-				"[concat(variables('factoryId'), '/dataflows/load_stg_actor_film_assoc')]"
 			]
 		}
 	]
