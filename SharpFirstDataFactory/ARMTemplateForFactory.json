@@ -598,6 +598,54 @@
 			]
 		},
 		{
+			"name": "[concat(parameters('factoryName'), '/09_load_stg_genre')]",
+			"type": "Microsoft.DataFactory/factories/pipelines",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"activities": [
+					{
+						"name": "load_stg_genre",
+						"type": "ExecuteDataFlow",
+						"dependsOn": [],
+						"policy": {
+							"timeout": "0.12:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"dataflow": {
+								"referenceName": "load_stg_genre",
+								"type": "DataFlowReference",
+								"parameters": {},
+								"datasetParameters": {
+									"source1": {},
+									"mapgenre": {},
+									"sink1": {}
+								}
+							},
+							"staging": {},
+							"compute": {
+								"coreCount": 8,
+								"computeType": "General"
+							},
+							"traceLevel": "Fine"
+						}
+					}
+				],
+				"policy": {
+					"elapsedTimeMetric": {},
+					"cancelAfter": {}
+				},
+				"annotations": []
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/dataflows/load_stg_genre')]"
+			]
+		},
+		{
 			"name": "[concat(parameters('factoryName'), '/blob_land_movies')]",
 			"type": "Microsoft.DataFactory/factories/datasets",
 			"apiVersion": "2018-06-01",
@@ -686,6 +734,9 @@
 					"referenceName": "AzureSqlDatabase1",
 					"type": "LinkedServiceReference"
 				},
+				"folder": {
+					"name": "02 stg and map"
+				},
 				"annotations": [],
 				"type": "AzureSqlTable",
 				"schema": [
@@ -716,6 +767,9 @@
 				"linkedServiceName": {
 					"referenceName": "AzureSqlDatabase1",
 					"type": "LinkedServiceReference"
+				},
+				"folder": {
+					"name": "02 stg and map"
 				},
 				"annotations": [],
 				"type": "AzureSqlTable",
@@ -756,6 +810,9 @@
 				"linkedServiceName": {
 					"referenceName": "AzureSqlDatabase1",
 					"type": "LinkedServiceReference"
+				},
+				"folder": {
+					"name": "02 stg and map"
 				},
 				"annotations": [],
 				"type": "AzureSqlTable",
@@ -868,6 +925,9 @@
 					"referenceName": "AzureSqlDatabase1",
 					"type": "LinkedServiceReference"
 				},
+				"folder": {
+					"name": "02 stg and map"
+				},
 				"annotations": [],
 				"type": "AzureSqlTable",
 				"schema": [
@@ -898,6 +958,9 @@
 				"linkedServiceName": {
 					"referenceName": "AzureSqlDatabase1",
 					"type": "LinkedServiceReference"
+				},
+				"folder": {
+					"name": "02 stg and map"
 				},
 				"annotations": [],
 				"type": "AzureSqlTable",
@@ -935,6 +998,9 @@
 				"linkedServiceName": {
 					"referenceName": "AzureSqlDatabase1",
 					"type": "LinkedServiceReference"
+				},
+				"folder": {
+					"name": "02 stg and map"
 				},
 				"annotations": [],
 				"type": "AzureSqlTable",
@@ -997,6 +1063,40 @@
 			]
 		},
 		{
+			"name": "[concat(parameters('factoryName'), '/stg_genre')]",
+			"type": "Microsoft.DataFactory/factories/datasets",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"linkedServiceName": {
+					"referenceName": "AzureSqlDatabase1",
+					"type": "LinkedServiceReference"
+				},
+				"folder": {
+					"name": "02 stg and map"
+				},
+				"annotations": [],
+				"type": "AzureSqlTable",
+				"schema": [
+					{
+						"name": "genre_id",
+						"type": "int",
+						"precision": 10
+					},
+					{
+						"name": "genre",
+						"type": "nvarchar"
+					}
+				],
+				"typeProperties": {
+					"schema": "dbo",
+					"table": "stg_genre"
+				}
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/linkedServices/AzureSqlDatabase1')]"
+			]
+		},
+		{
 			"name": "[concat(parameters('factoryName'), '/stg_genre_film_assoc')]",
 			"type": "Microsoft.DataFactory/factories/datasets",
 			"apiVersion": "2018-06-01",
@@ -1004,6 +1104,9 @@
 				"linkedServiceName": {
 					"referenceName": "AzureSqlDatabase1",
 					"type": "LinkedServiceReference"
+				},
+				"folder": {
+					"name": "02 stg and map"
 				},
 				"annotations": [],
 				"type": "AzureSqlTable",
@@ -1041,6 +1144,9 @@
 				"linkedServiceName": {
 					"referenceName": "AzureSqlDatabase1",
 					"type": "LinkedServiceReference"
+				},
+				"folder": {
+					"name": "02 stg and map"
 				},
 				"annotations": [],
 				"type": "AzureSqlTable",
@@ -1838,6 +1944,151 @@
 				"[concat(variables('factoryId'), '/datasets/move_db_landing')]",
 				"[concat(variables('factoryId'), '/datasets/map_film')]",
 				"[concat(variables('factoryId'), '/datasets/stg_film')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/load_stg_genre')]",
+			"type": "Microsoft.DataFactory/factories/dataflows",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"type": "MappingDataFlow",
+				"typeProperties": {
+					"sources": [
+						{
+							"dataset": {
+								"referenceName": "blob_land_movies",
+								"type": "DatasetReference"
+							},
+							"name": "source1"
+						},
+						{
+							"dataset": {
+								"referenceName": "map_genre",
+								"type": "DatasetReference"
+							},
+							"name": "mapgenre"
+						}
+					],
+					"sinks": [
+						{
+							"dataset": {
+								"referenceName": "stg_genre",
+								"type": "DatasetReference"
+							},
+							"name": "sink1"
+						}
+					],
+					"transformations": [
+						{
+							"name": "derivedColumn1"
+						},
+						{
+							"name": "flatten1"
+						},
+						{
+							"name": "aggregate1"
+						},
+						{
+							"name": "select1"
+						},
+						{
+							"name": "cleanGenre"
+						},
+						{
+							"name": "join1"
+						},
+						{
+							"name": "select2"
+						}
+					],
+					"scriptLines": [
+						"source(output(",
+						"          Rank as string,",
+						"          Title as string,",
+						"          Genre as string,",
+						"          Description as string,",
+						"          Director as string,",
+						"          Actors as string,",
+						"          Year as string,",
+						"          {Runtime (Minutes)} as string,",
+						"          Rating as string,",
+						"          Votes as string,",
+						"          {Revenue (Millions)} as string,",
+						"          Metascore as string",
+						"     ),",
+						"     allowSchemaDrift: true,",
+						"     validateSchema: false,",
+						"     ignoreNoFilesFound: false) ~> source1",
+						"source(output(",
+						"          genre_id as integer,",
+						"          genre as string",
+						"     ),",
+						"     allowSchemaDrift: true,",
+						"     validateSchema: false,",
+						"     isolationLevel: 'READ_UNCOMMITTED',",
+						"     format: 'table') ~> mapgenre",
+						"source1 derive(Genre = split(Genre, ',')) ~> derivedColumn1",
+						"derivedColumn1 foldDown(unroll(Genre),",
+						"     mapColumn(",
+						"          Rank,",
+						"          Title,",
+						"          Genre,",
+						"          Description,",
+						"          Director,",
+						"          Actors,",
+						"          Year,",
+						"          {Runtime (Minutes)},",
+						"          Rating,",
+						"          Votes,",
+						"          {Revenue (Millions)},",
+						"          Metascore",
+						"     ),",
+						"     skipDuplicateMapInputs: false,",
+						"     skipDuplicateMapOutputs: false) ~> flatten1",
+						"cleanGenre aggregate(groupBy(Genre),",
+						"     each(match(name=='Rank'), $$ = first($$))) ~> aggregate1",
+						"aggregate1 select(mapColumn(",
+						"          Genre",
+						"     ),",
+						"     skipDuplicateMapInputs: true,",
+						"     skipDuplicateMapOutputs: true) ~> select1",
+						"flatten1 derive(Genre = trim(Genre)) ~> cleanGenre",
+						"select1, mapgenre join(select1@Genre == mapgenre@genre,",
+						"     joinType:'inner',",
+						"     matchType:'exact',",
+						"     ignoreSpaces: false,",
+						"     broadcast: 'auto')~> join1",
+						"join1 select(mapColumn(",
+						"          Genre = select1@Genre,",
+						"          genre_id",
+						"     ),",
+						"     skipDuplicateMapInputs: true,",
+						"     skipDuplicateMapOutputs: true) ~> select2",
+						"select2 sink(allowSchemaDrift: true,",
+						"     validateSchema: false,",
+						"     input(",
+						"          genre_id as integer,",
+						"          genre as string",
+						"     ),",
+						"     deletable:false,",
+						"     insertable:true,",
+						"     updateable:false,",
+						"     upsertable:false,",
+						"     format: 'table',",
+						"     skipDuplicateMapInputs: true,",
+						"     skipDuplicateMapOutputs: true,",
+						"     errorHandlingOption: 'stopOnFirstError',",
+						"     mapColumn(",
+						"          genre_id,",
+						"          genre = Genre",
+						"     )) ~> sink1"
+					]
+				}
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/datasets/blob_land_movies')]",
+				"[concat(variables('factoryId'), '/datasets/map_genre')]",
+				"[concat(variables('factoryId'), '/datasets/stg_genre')]"
 			]
 		},
 		{
