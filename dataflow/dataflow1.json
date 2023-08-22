@@ -6,80 +6,32 @@
 			"sources": [
 				{
 					"dataset": {
-						"referenceName": "stg_film",
+						"referenceName": "map_director",
 						"type": "DatasetReference"
 					},
-					"name": "stgfilm"
-				},
-				{
-					"dataset": {
-						"referenceName": "map_film",
-						"type": "DatasetReference"
-					},
-					"name": "mapfilm"
+					"name": "mapdir"
 				}
 			],
 			"sinks": [
 				{
 					"dataset": {
-						"referenceName": "map_director",
+						"referenceName": "dim_dir",
 						"type": "DatasetReference"
 					},
 					"name": "sink1"
 				}
 			],
-			"transformations": [
-				{
-					"name": "join1"
-				},
-				{
-					"name": "distinctDir"
-				},
-				{
-					"name": "select2"
-				}
-			],
+			"transformations": [],
 			"scriptLines": [
 				"source(output(",
-				"          film_id as integer,",
-				"          title as string,",
-				"          description as string,",
-				"          director as string,",
-				"          film_year as integer,",
-				"          runtime_minutes as integer,",
-				"          rating as double,",
-				"          votes as integer,",
-				"          revenue_millions as double,",
-				"          metascore as integer",
-				"     ),",
-				"     allowSchemaDrift: true,",
-				"     validateSchema: false,",
-				"     isolationLevel: 'READ_UNCOMMITTED',",
-				"     format: 'table') ~> stgfilm",
-				"source(output(",
-				"          film_id as integer,",
-				"          title as string,",
-				"          film_year as integer,",
+				"          director_id as integer,",
 				"          director as string",
 				"     ),",
 				"     allowSchemaDrift: true,",
 				"     validateSchema: false,",
 				"     isolationLevel: 'READ_UNCOMMITTED',",
-				"     format: 'table') ~> mapfilm",
-				"stgfilm, mapfilm join(stgfilm@film_id == mapfilm@film_id,",
-				"     joinType:'inner',",
-				"     matchType:'exact',",
-				"     ignoreSpaces: false,",
-				"     broadcast: 'auto')~> join1",
-				"select2 aggregate(groupBy(director),",
-				"     each(match(name != 'director'), $$ = first($$))) ~> distinctDir",
-				"join1 select(mapColumn(",
-				"          film_id = stgfilm@film_id,",
-				"          director = stgfilm@director",
-				"     ),",
-				"     skipDuplicateMapInputs: true,",
-				"     skipDuplicateMapOutputs: true) ~> select2",
-				"distinctDir sink(allowSchemaDrift: true,",
+				"     format: 'table') ~> mapdir",
+				"mapdir sink(allowSchemaDrift: true,",
 				"     validateSchema: false,",
 				"     input(",
 				"          director_id as integer,",
@@ -94,6 +46,7 @@
 				"     skipDuplicateMapOutputs: true,",
 				"     errorHandlingOption: 'stopOnFirstError',",
 				"     mapColumn(",
+				"          director_id,",
 				"          director",
 				"     )) ~> sink1"
 			]
