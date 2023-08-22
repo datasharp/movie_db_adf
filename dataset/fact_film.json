@@ -1,0 +1,57 @@
+{
+	"name": "fact_film",
+	"properties": {
+		"linkedServiceName": {
+			"referenceName": "AzureSqlDatabase1",
+			"type": "LinkedServiceReference"
+		},
+		"annotations": [],
+		"type": "AzureSqlTable",
+		"schema": [
+			{
+				"name": "runtime_minutes",
+				"type": "float",
+				"precision": 15
+			},
+			{
+				"name": "rating",
+				"type": "float",
+				"precision": 15
+			},
+			{
+				"name": "revenue_millions",
+				"type": "float",
+				"precision": 15
+			},
+			{
+				"name": "votes",
+				"type": "int",
+				"precision": 10
+			},
+			{
+				"name": "metascore",
+				"type": "int",
+				"precision": 10
+			},
+			{
+				"name": "film_id",
+				"type": "int",
+				"precision": 10
+			},
+			{
+				"name": "director_id",
+				"type": "int",
+				"precision": 10
+			},
+			{
+				"name": "year_id",
+				"type": "int",
+				"precision": 10
+			}
+		],
+		"typeProperties": {
+			"schema": "dbo",
+			"table": "fact_film"
+		}
+	}
+}
