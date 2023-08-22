@@ -1,0 +1,55 @@
+{
+	"name": "load_dim_actor",
+	"properties": {
+		"type": "MappingDataFlow",
+		"typeProperties": {
+			"sources": [
+				{
+					"dataset": {
+						"referenceName": "stg_actor",
+						"type": "DatasetReference"
+					},
+					"name": "stgactor"
+				}
+			],
+			"sinks": [
+				{
+					"dataset": {
+						"referenceName": "dim_actor",
+						"type": "DatasetReference"
+					},
+					"name": "sink1"
+				}
+			],
+			"transformations": [],
+			"scriptLines": [
+				"source(output(",
+				"          actor_id as integer,",
+				"          actor as string",
+				"     ),",
+				"     allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     isolationLevel: 'READ_UNCOMMITTED',",
+				"     format: 'table') ~> stgactor",
+				"stgactor sink(allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     input(",
+				"          actor_id as integer,",
+				"          actor as string",
+				"     ),",
+				"     deletable:false,",
+				"     insertable:true,",
+				"     updateable:false,",
+				"     upsertable:false,",
+				"     format: 'table',",
+				"     skipDuplicateMapInputs: true,",
+				"     skipDuplicateMapOutputs: true,",
+				"     errorHandlingOption: 'stopOnFirstError',",
+				"     mapColumn(",
+				"          actor_id,",
+				"          actor",
+				"     )) ~> sink1"
+			]
+		}
+	}
+}
