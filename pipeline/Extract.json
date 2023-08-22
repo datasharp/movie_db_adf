@@ -1,5 +1,5 @@
 {
-	"name": "01_blob_landing_to_database_land_movies",
+	"name": "Extract",
 	"properties": {
 		"activities": [
 			{
