@@ -13,6 +13,79 @@
 	},
 	"resources": [
 		{
+			"name": "[concat(parameters('factoryName'), '/stg_genre_film_assoc')]",
+			"type": "Microsoft.DataFactory/factories/datasets",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"linkedServiceName": {
+					"referenceName": "AzureSqlDatabase1",
+					"type": "LinkedServiceReference"
+				},
+				"folder": {
+					"name": "02 stg and map"
+				},
+				"annotations": [],
+				"type": "AzureSqlTable",
+				"schema": [
+					{
+						"name": "stg_genre_film_id",
+						"type": "int",
+						"precision": 10
+					},
+					{
+						"name": "genre_id",
+						"type": "int",
+						"precision": 10
+					},
+					{
+						"name": "film_id",
+						"type": "int",
+						"precision": 10
+					}
+				],
+				"typeProperties": {
+					"schema": "dbo",
+					"table": "stg_genre_film_assoc"
+				}
+			},
+			"dependsOn": []
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/temp_actor_year_title_dir')]",
+			"type": "Microsoft.DataFactory/factories/datasets",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"linkedServiceName": {
+					"referenceName": "AzureSqlDatabase1",
+					"type": "LinkedServiceReference"
+				},
+				"folder": {
+					"name": "02 stg and map"
+				},
+				"annotations": [],
+				"type": "AzureSqlTable",
+				"schema": [
+					{
+						"name": "Actors",
+						"type": "nvarchar"
+					},
+					{
+						"name": "Title",
+						"type": "nvarchar"
+					},
+					{
+						"name": "Director",
+						"type": "nvarchar"
+					}
+				],
+				"typeProperties": {
+					"schema": "dbo",
+					"table": "temp_actor_title_year_dir"
+				}
+			},
+			"dependsOn": []
+		},
+		{
 			"name": "[concat(parameters('factoryName'), '/01_blob_landing_to_database_land_movies')]",
 			"type": "Microsoft.DataFactory/factories/pipelines",
 			"apiVersion": "2018-06-01",
@@ -418,7 +491,9 @@
 					]
 				}
 			},
-			"dependsOn": []
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/datasets/stg_genre_film_assoc')]"
+			]
 		},
 		{
 			"name": "[concat(parameters('factoryName'), '/load_dim_movie')]",
@@ -579,6 +654,105 @@
 						"          dim_actor_movie_assoc_id = stg_actor_film_id,",
 						"          actor_id,",
 						"          film_id",
+						"     )) ~> sink1"
+					]
+				}
+			},
+			"dependsOn": []
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/load_dim_year')]",
+			"type": "Microsoft.DataFactory/factories/dataflows",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"type": "MappingDataFlow",
+				"typeProperties": {
+					"sources": [
+						{
+							"dataset": {
+								"referenceName": "map_year",
+								"type": "DatasetReference"
+							},
+							"name": "mapyear"
+						},
+						{
+							"dataset": {
+								"referenceName": "stg_film",
+								"type": "DatasetReference"
+							},
+							"name": "stgfilm"
+						}
+					],
+					"sinks": [
+						{
+							"dataset": {
+								"referenceName": "dim_year",
+								"type": "DatasetReference"
+							},
+							"name": "sink1"
+						}
+					],
+					"transformations": [
+						{
+							"name": "join1"
+						},
+						{
+							"name": "select1"
+						}
+					],
+					"scriptLines": [
+						"source(output(",
+						"          year_id as integer,",
+						"          year as integer",
+						"     ),",
+						"     allowSchemaDrift: true,",
+						"     validateSchema: false,",
+						"     isolationLevel: 'READ_UNCOMMITTED',",
+						"     format: 'table') ~> mapyear",
+						"source(output(",
+						"          film_id as integer,",
+						"          title as string,",
+						"          description as string,",
+						"          director as string,",
+						"          film_year as integer,",
+						"          runtime_minutes as integer,",
+						"          rating as double,",
+						"          votes as integer,",
+						"          revenue_millions as double,",
+						"          metascore as integer",
+						"     ),",
+						"     allowSchemaDrift: true,",
+						"     validateSchema: false,",
+						"     isolationLevel: 'READ_UNCOMMITTED',",
+						"     format: 'table') ~> stgfilm",
+						"stgfilm, mapyear join(film_year == year,",
+						"     joinType:'inner',",
+						"     matchType:'exact',",
+						"     ignoreSpaces: false,",
+						"     broadcast: 'auto')~> join1",
+						"join1 select(mapColumn(",
+						"          year_id,",
+						"          film_year",
+						"     ),",
+						"     skipDuplicateMapInputs: true,",
+						"     skipDuplicateMapOutputs: true) ~> select1",
+						"select1 sink(allowSchemaDrift: true,",
+						"     validateSchema: false,",
+						"     input(",
+						"          date_id as integer,",
+						"          year as integer",
+						"     ),",
+						"     deletable:false,",
+						"     insertable:true,",
+						"     updateable:false,",
+						"     upsertable:false,",
+						"     format: 'table',",
+						"     skipDuplicateMapInputs: true,",
+						"     skipDuplicateMapOutputs: true,",
+						"     errorHandlingOption: 'stopOnFirstError',",
+						"     mapColumn(",
+						"          date_id = year_id,",
+						"          year = film_year",
 						"     )) ~> sink1"
 					]
 				}
@@ -983,6 +1157,85 @@
 						"     mapColumn(",
 						"          genre = Genre",
 						"     )) ~> loadintomapgenre"
+					]
+				}
+			},
+			"dependsOn": []
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/load_map_year')]",
+			"type": "Microsoft.DataFactory/factories/dataflows",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"type": "MappingDataFlow",
+				"typeProperties": {
+					"sources": [
+						{
+							"dataset": {
+								"referenceName": "stg_film",
+								"type": "DatasetReference"
+							},
+							"name": "stgfilm"
+						}
+					],
+					"sinks": [
+						{
+							"dataset": {
+								"referenceName": "map_year",
+								"type": "DatasetReference"
+							},
+							"name": "sink1"
+						}
+					],
+					"transformations": [
+						{
+							"name": "select1"
+						},
+						{
+							"name": "distinctYear"
+						}
+					],
+					"scriptLines": [
+						"source(output(",
+						"          film_id as integer,",
+						"          title as string,",
+						"          description as string,",
+						"          director as string,",
+						"          film_year as integer,",
+						"          runtime_minutes as integer,",
+						"          rating as double,",
+						"          votes as integer,",
+						"          revenue_millions as double,",
+						"          metascore as integer",
+						"     ),",
+						"     allowSchemaDrift: true,",
+						"     validateSchema: false,",
+						"     isolationLevel: 'READ_UNCOMMITTED',",
+						"     format: 'table') ~> stgfilm",
+						"stgfilm select(mapColumn(",
+						"          year = film_year",
+						"     ),",
+						"     skipDuplicateMapInputs: true,",
+						"     skipDuplicateMapOutputs: true) ~> select1",
+						"select1 aggregate(groupBy(year),",
+						"     each(match(name!='year'), $$ = first($$))) ~> distinctYear",
+						"distinctYear sink(allowSchemaDrift: true,",
+						"     validateSchema: false,",
+						"     input(",
+						"          year_id as integer,",
+						"          year as integer",
+						"     ),",
+						"     deletable:false,",
+						"     insertable:true,",
+						"     updateable:false,",
+						"     upsertable:false,",
+						"     format: 'table',",
+						"     skipDuplicateMapInputs: true,",
+						"     skipDuplicateMapOutputs: true,",
+						"     errorHandlingOption: 'stopOnFirstError',",
+						"     mapColumn(",
+						"          year",
+						"     )) ~> sink1"
 					]
 				}
 			},
@@ -1696,7 +1949,9 @@
 					]
 				}
 			},
-			"dependsOn": []
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/datasets/stg_genre_film_assoc')]"
+			]
 		},
 		{
 			"name": "[concat(parameters('factoryName'), '/02_load_map_film')]",
@@ -1744,200 +1999,6 @@
 			},
 			"dependsOn": [
 				"[concat(variables('factoryId'), '/dataflows/load_map_film')]"
-			]
-		},
-		{
-			"name": "[concat(parameters('factoryName'), '/03_load_stg_film')]",
-			"type": "Microsoft.DataFactory/factories/pipelines",
-			"apiVersion": "2018-06-01",
-			"properties": {
-				"activities": [
-					{
-						"name": "load_stg_film",
-						"type": "ExecuteDataFlow",
-						"dependsOn": [],
-						"policy": {
-							"timeout": "0.12:00:00",
-							"retry": 0,
-							"retryIntervalInSeconds": 30,
-							"secureOutput": false,
-							"secureInput": false
-						},
-						"userProperties": [],
-						"typeProperties": {
-							"dataflow": {
-								"referenceName": "load_stg_film",
-								"type": "DataFlowReference",
-								"parameters": {},
-								"datasetParameters": {
-									"landingmovie": {},
-									"mapfilm": {},
-									"loadintostgfilm": {}
-								}
-							},
-							"staging": {},
-							"compute": {
-								"coreCount": 8,
-								"computeType": "General"
-							},
-							"traceLevel": "Fine"
-						}
-					}
-				],
-				"policy": {
-					"elapsedTimeMetric": {},
-					"cancelAfter": {}
-				},
-				"annotations": [],
-				"lastPublishTime": "2023-08-22T03:32:26Z"
-			},
-			"dependsOn": [
-				"[concat(variables('factoryId'), '/dataflows/load_stg_film')]"
-			]
-		},
-		{
-			"name": "[concat(parameters('factoryName'), '/04_load_map_actor')]",
-			"type": "Microsoft.DataFactory/factories/pipelines",
-			"apiVersion": "2018-06-01",
-			"properties": {
-				"activities": [
-					{
-						"name": "load_map_actor",
-						"type": "ExecuteDataFlow",
-						"dependsOn": [],
-						"policy": {
-							"timeout": "0.12:00:00",
-							"retry": 0,
-							"retryIntervalInSeconds": 30,
-							"secureOutput": false,
-							"secureInput": false
-						},
-						"userProperties": [],
-						"typeProperties": {
-							"dataflow": {
-								"referenceName": "load_map_actor",
-								"type": "DataFlowReference",
-								"parameters": {},
-								"datasetParameters": {
-									"source1": {},
-									"loadintomapactors": {}
-								}
-							},
-							"staging": {},
-							"compute": {
-								"coreCount": 8,
-								"computeType": "General"
-							},
-							"traceLevel": "Fine"
-						}
-					}
-				],
-				"policy": {
-					"elapsedTimeMetric": {},
-					"cancelAfter": {}
-				},
-				"annotations": [],
-				"lastPublishTime": "2023-08-22T03:32:27Z"
-			},
-			"dependsOn": [
-				"[concat(variables('factoryId'), '/dataflows/load_map_actor')]"
-			]
-		},
-		{
-			"name": "[concat(parameters('factoryName'), '/05_stg_load_actor_film_assoc')]",
-			"type": "Microsoft.DataFactory/factories/pipelines",
-			"apiVersion": "2018-06-01",
-			"properties": {
-				"activities": [
-					{
-						"name": "load_stg_actor_film_assoc",
-						"type": "ExecuteDataFlow",
-						"dependsOn": [],
-						"policy": {
-							"timeout": "0.12:00:00",
-							"retry": 0,
-							"retryIntervalInSeconds": 30,
-							"secureOutput": false,
-							"secureInput": false
-						},
-						"userProperties": [],
-						"typeProperties": {
-							"dataflow": {
-								"referenceName": "load_stg_actor_film_assoc",
-								"type": "DataFlowReference",
-								"parameters": {},
-								"datasetParameters": {
-									"source1": {},
-									"mapactor": {},
-									"mapfilm": {},
-									"sink1": {}
-								}
-							},
-							"staging": {},
-							"compute": {
-								"coreCount": 8,
-								"computeType": "General"
-							},
-							"traceLevel": "Fine"
-						}
-					}
-				],
-				"policy": {
-					"elapsedTimeMetric": {},
-					"cancelAfter": {}
-				},
-				"annotations": []
-			},
-			"dependsOn": [
-				"[concat(variables('factoryId'), '/dataflows/load_stg_actor_film_assoc')]"
-			]
-		},
-		{
-			"name": "[concat(parameters('factoryName'), '/06_load_stg_actor')]",
-			"type": "Microsoft.DataFactory/factories/pipelines",
-			"apiVersion": "2018-06-01",
-			"properties": {
-				"activities": [
-					{
-						"name": "load_stg_actor",
-						"type": "ExecuteDataFlow",
-						"dependsOn": [],
-						"policy": {
-							"timeout": "0.12:00:00",
-							"retry": 0,
-							"retryIntervalInSeconds": 30,
-							"secureOutput": false,
-							"secureInput": false
-						},
-						"userProperties": [],
-						"typeProperties": {
-							"dataflow": {
-								"referenceName": "load_stg_actor",
-								"type": "DataFlowReference",
-								"parameters": {},
-								"datasetParameters": {
-									"source1": {},
-									"mapactor": {},
-									"sink1": {}
-								}
-							},
-							"staging": {},
-							"compute": {
-								"coreCount": 8,
-								"computeType": "General"
-							},
-							"traceLevel": "Fine"
-						}
-					}
-				],
-				"policy": {
-					"elapsedTimeMetric": {},
-					"cancelAfter": {}
-				},
-				"annotations": []
-			},
-			"dependsOn": [
-				"[concat(variables('factoryId'), '/dataflows/load_stg_actor')]"
 			]
 		}
 	]
