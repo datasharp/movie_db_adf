@@ -1,0 +1,36 @@
+{
+	"name": "map_film",
+	"properties": {
+		"linkedServiceName": {
+			"referenceName": "AzureSqlDatabase1",
+			"type": "LinkedServiceReference"
+		},
+		"annotations": [],
+		"type": "AzureSqlTable",
+		"schema": [
+			{
+				"name": "film_id",
+				"type": "int",
+				"precision": 10
+			},
+			{
+				"name": "title",
+				"type": "nvarchar"
+			},
+			{
+				"name": "film_year",
+				"type": "int",
+				"precision": 10
+			},
+			{
+				"name": "director",
+				"type": "nvarchar"
+			}
+		],
+		"typeProperties": {
+			"schema": "dbo",
+			"table": "map_film"
+		}
+	},
+	"type": "Microsoft.DataFactory/factories/datasets"
+}

@@ -1,0 +1,9 @@
+{
+	"name": "SharpFirstDataFactory",
+	"location": "westus",
+	"identity": {
+		"type": "SystemAssigned",
+		"principalId": "7c4e0c6e-b711-4165-ab47-81d801e39619",
+		"tenantId": "ce6d05e1-3c5e-4d62-87a8-4c4a2713c113"
+	}
+}

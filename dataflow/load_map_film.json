@@ -1,0 +1,79 @@
+{
+	"name": "load_map_film",
+	"properties": {
+		"type": "MappingDataFlow",
+		"typeProperties": {
+			"sources": [
+				{
+					"dataset": {
+						"referenceName": "move_db_landing",
+						"type": "DatasetReference"
+					},
+					"name": "landmovies"
+				}
+			],
+			"sinks": [
+				{
+					"dataset": {
+						"referenceName": "map_film",
+						"type": "DatasetReference"
+					},
+					"name": "sink1"
+				}
+			],
+			"transformations": [
+				{
+					"name": "select1"
+				}
+			],
+			"scriptLines": [
+				"source(output(",
+				"          Rank as integer,",
+				"          Title as string,",
+				"          Genre as string,",
+				"          Description as string,",
+				"          Director as string,",
+				"          Actors as string,",
+				"          Year as integer,",
+				"          Runtime_Minutes as integer,",
+				"          Rating as double,",
+				"          Votes as integer,",
+				"          Revenue_Millions as double,",
+				"          Metascore as integer",
+				"     ),",
+				"     allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     isolationLevel: 'READ_UNCOMMITTED',",
+				"     format: 'table') ~> landmovies",
+				"landmovies select(mapColumn(",
+				"          Title,",
+				"          Director,",
+				"          Year",
+				"     ),",
+				"     skipDuplicateMapInputs: true,",
+				"     skipDuplicateMapOutputs: true) ~> select1",
+				"select1 sink(allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     input(",
+				"          film_id as integer,",
+				"          title as string,",
+				"          film_year as integer,",
+				"          director as string",
+				"     ),",
+				"     deletable:false,",
+				"     insertable:true,",
+				"     updateable:false,",
+				"     upsertable:false,",
+				"     format: 'table',",
+				"     skipDuplicateMapInputs: true,",
+				"     skipDuplicateMapOutputs: true,",
+				"     errorHandlingOption: 'stopOnFirstError',",
+				"     mapColumn(",
+				"          title = Title,",
+				"          film_year = Year,",
+				"          director = Director",
+				"     )) ~> sink1"
+			]
+		}
+	}
+}

@@ -1,0 +1,76 @@
+{
+	"name": "move_db_landing",
+	"properties": {
+		"linkedServiceName": {
+			"referenceName": "AzureSqlDatabase1",
+			"type": "LinkedServiceReference"
+		},
+		"folder": {
+			"name": "01 landing"
+		},
+		"annotations": [],
+		"type": "AzureSqlTable",
+		"schema": [
+			{
+				"name": "Rank",
+				"type": "smallint",
+				"precision": 5
+			},
+			{
+				"name": "Title",
+				"type": "nvarchar"
+			},
+			{
+				"name": "Genre",
+				"type": "nvarchar"
+			},
+			{
+				"name": "Description",
+				"type": "varchar"
+			},
+			{
+				"name": "Director",
+				"type": "nvarchar"
+			},
+			{
+				"name": "Actors",
+				"type": "nvarchar"
+			},
+			{
+				"name": "Year",
+				"type": "smallint",
+				"precision": 5
+			},
+			{
+				"name": "Runtime_Minutes",
+				"type": "tinyint",
+				"precision": 3
+			},
+			{
+				"name": "Rating",
+				"type": "float",
+				"precision": 15
+			},
+			{
+				"name": "Votes",
+				"type": "int",
+				"precision": 10
+			},
+			{
+				"name": "Revenue_Millions",
+				"type": "float",
+				"precision": 15
+			},
+			{
+				"name": "Metascore",
+				"type": "tinyint",
+				"precision": 3
+			}
+		],
+		"typeProperties": {
+			"schema": "dbo",
+			"table": "land_movies"
+		}
+	},
+	"type": "Microsoft.DataFactory/factories/datasets"
+}

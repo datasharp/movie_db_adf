@@ -1,0 +1,76 @@
+{
+	"name": "blob_land_movies",
+	"properties": {
+		"linkedServiceName": {
+			"referenceName": "landing_blob_linked_service",
+			"type": "LinkedServiceReference"
+		},
+		"folder": {
+			"name": "01 landing"
+		},
+		"annotations": [],
+		"type": "DelimitedText",
+		"typeProperties": {
+			"location": {
+				"type": "AzureBlobStorageLocation",
+				"fileName": "IMDB-Movie-Data.csv",
+				"container": "landing"
+			},
+			"columnDelimiter": ",",
+			"escapeChar": "\\",
+			"firstRowAsHeader": true,
+			"quoteChar": "\""
+		},
+		"schema": [
+			{
+				"name": "Rank",
+				"type": "String"
+			},
+			{
+				"name": "Title",
+				"type": "String"
+			},
+			{
+				"name": "Genre",
+				"type": "String"
+			},
+			{
+				"name": "Description",
+				"type": "String"
+			},
+			{
+				"name": "Director",
+				"type": "String"
+			},
+			{
+				"name": "Actors",
+				"type": "String"
+			},
+			{
+				"name": "Year",
+				"type": "String"
+			},
+			{
+				"name": "Runtime (Minutes)",
+				"type": "String"
+			},
+			{
+				"name": "Rating",
+				"type": "String"
+			},
+			{
+				"name": "Votes",
+				"type": "String"
+			},
+			{
+				"name": "Revenue (Millions)",
+				"type": "String"
+			},
+			{
+				"name": "Metascore",
+				"type": "String"
+			}
+		]
+	},
+	"type": "Microsoft.DataFactory/factories/datasets"
+}

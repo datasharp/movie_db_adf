@@ -1,0 +1,105 @@
+{
+	"name": "load_map_actor",
+	"properties": {
+		"type": "MappingDataFlow",
+		"typeProperties": {
+			"sources": [
+				{
+					"dataset": {
+						"referenceName": "blob_land_movies",
+						"type": "DatasetReference"
+					},
+					"name": "source1"
+				}
+			],
+			"sinks": [
+				{
+					"dataset": {
+						"referenceName": "map_actor",
+						"type": "DatasetReference"
+					},
+					"name": "loadintomapactors"
+				}
+			],
+			"transformations": [
+				{
+					"name": "derivedColumn1"
+				},
+				{
+					"name": "flatten1"
+				},
+				{
+					"name": "aggregate1"
+				},
+				{
+					"name": "select1"
+				},
+				{
+					"name": "cleanActors"
+				}
+			],
+			"scriptLines": [
+				"source(output(",
+				"          Rank as string,",
+				"          Title as string,",
+				"          Genre as string,",
+				"          Description as string,",
+				"          Director as string,",
+				"          Actors as string,",
+				"          Year as string,",
+				"          {Runtime (Minutes)} as string,",
+				"          Rating as string,",
+				"          Votes as string,",
+				"          {Revenue (Millions)} as string,",
+				"          Metascore as string",
+				"     ),",
+				"     allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     ignoreNoFilesFound: false) ~> source1",
+				"source1 derive(Actors = split(Actors, ',')) ~> derivedColumn1",
+				"derivedColumn1 foldDown(unroll(Actors),",
+				"     mapColumn(",
+				"          Rank,",
+				"          Title,",
+				"          Genre,",
+				"          Description,",
+				"          Director,",
+				"          Actors,",
+				"          Year,",
+				"          {Runtime (Minutes)},",
+				"          Rating,",
+				"          Votes,",
+				"          {Revenue (Millions)},",
+				"          Metascore",
+				"     ),",
+				"     skipDuplicateMapInputs: false,",
+				"     skipDuplicateMapOutputs: false) ~> flatten1",
+				"cleanActors aggregate(groupBy(Actors),",
+				"     each(match(name=='Rank'), $$ = first($$))) ~> aggregate1",
+				"aggregate1 select(mapColumn(",
+				"          Actors",
+				"     ),",
+				"     skipDuplicateMapInputs: true,",
+				"     skipDuplicateMapOutputs: true) ~> select1",
+				"flatten1 derive(Actors = trim(Actors)) ~> cleanActors",
+				"select1 sink(allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     input(",
+				"          actor_id as integer,",
+				"          actor as string",
+				"     ),",
+				"     deletable:false,",
+				"     insertable:true,",
+				"     updateable:false,",
+				"     upsertable:false,",
+				"     format: 'table',",
+				"     skipDuplicateMapInputs: true,",
+				"     skipDuplicateMapOutputs: true,",
+				"     errorHandlingOption: 'stopOnFirstError',",
+				"     mapColumn(",
+				"          actor = Actors",
+				"     )) ~> loadintomapactors"
+			]
+		}
+	}
+}

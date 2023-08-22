@@ -1,0 +1,27 @@
+{
+	"name": "map_actor",
+	"properties": {
+		"linkedServiceName": {
+			"referenceName": "AzureSqlDatabase1",
+			"type": "LinkedServiceReference"
+		},
+		"annotations": [],
+		"type": "AzureSqlTable",
+		"schema": [
+			{
+				"name": "actor_id",
+				"type": "int",
+				"precision": 10
+			},
+			{
+				"name": "actor",
+				"type": "nvarchar"
+			}
+		],
+		"typeProperties": {
+			"schema": "dbo",
+			"table": "map_actor"
+		}
+	},
+	"type": "Microsoft.DataFactory/factories/datasets"
+}
