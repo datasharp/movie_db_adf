@@ -1,0 +1,58 @@
+{
+	"name": "dataflow1",
+	"properties": {
+		"type": "MappingDataFlow",
+		"typeProperties": {
+			"sources": [
+				{
+					"dataset": {
+						"referenceName": "stg_genre_film_assoc",
+						"type": "DatasetReference"
+					},
+					"name": "stggenrefilmassoc"
+				}
+			],
+			"sinks": [
+				{
+					"dataset": {
+						"referenceName": "dim_genre_movie_assoc",
+						"type": "DatasetReference"
+					},
+					"name": "sink1"
+				}
+			],
+			"transformations": [],
+			"scriptLines": [
+				"source(output(",
+				"          stg_genre_film_id as integer,",
+				"          genre_id as integer,",
+				"          film_id as integer",
+				"     ),",
+				"     allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     isolationLevel: 'READ_UNCOMMITTED',",
+				"     format: 'table') ~> stggenrefilmassoc",
+				"stggenrefilmassoc sink(allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     input(",
+				"          dim_genre_movie_assoc_id as integer,",
+				"          genre_id as integer,",
+				"          film_id as integer",
+				"     ),",
+				"     deletable:false,",
+				"     insertable:true,",
+				"     updateable:false,",
+				"     upsertable:false,",
+				"     format: 'table',",
+				"     skipDuplicateMapInputs: true,",
+				"     skipDuplicateMapOutputs: true,",
+				"     errorHandlingOption: 'stopOnFirstError',",
+				"     mapColumn(",
+				"          dim_genre_movie_assoc_id = stg_genre_film_id,",
+				"          genre_id,",
+				"          film_id",
+				"     )) ~> sink1"
+			]
+		}
+	}
+}
