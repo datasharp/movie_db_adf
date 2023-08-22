@@ -1,0 +1,32 @@
+{
+	"name": "dim_actor_movie_assoc",
+	"properties": {
+		"linkedServiceName": {
+			"referenceName": "AzureSqlDatabase1",
+			"type": "LinkedServiceReference"
+		},
+		"annotations": [],
+		"type": "AzureSqlTable",
+		"schema": [
+			{
+				"name": "dim_actor_movie_assoc_id",
+				"type": "int",
+				"precision": 10
+			},
+			{
+				"name": "actor_id",
+				"type": "int",
+				"precision": 10
+			},
+			{
+				"name": "film_id",
+				"type": "int",
+				"precision": 10
+			}
+		],
+		"typeProperties": {
+			"schema": "dbo",
+			"table": "dim_actor_movie_assoc"
+		}
+	}
+}
