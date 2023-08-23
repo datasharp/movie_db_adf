@@ -275,11 +275,11 @@
 				}
 			},
 			{
-				"name": "load_dim_dir",
+				"name": "load_map_year",
 				"type": "ExecuteDataFlow",
 				"dependsOn": [
 					{
-						"activity": "load_map_dir",
+						"activity": "load_stg_film",
 						"dependencyConditions": [
 							"Succeeded"
 						]
@@ -295,7 +295,7 @@
 				"userProperties": [],
 				"typeProperties": {
 					"dataflow": {
-						"referenceName": "load_dim_dir",
+						"referenceName": "load_map_year",
 						"type": "DataFlowReference"
 					},
 					"compute": {
