@@ -31,6 +31,13 @@
 						"type": "DatasetReference"
 					},
 					"name": "mapfilm"
+				},
+				{
+					"dataset": {
+						"referenceName": "fact_film",
+						"type": "DatasetReference"
+					},
+					"name": "source1"
 				}
 			],
 			"sinks": [
@@ -115,6 +122,20 @@
 				"     validateSchema: false,",
 				"     isolationLevel: 'READ_UNCOMMITTED',",
 				"     format: 'table') ~> mapfilm",
+				"source(output(",
+				"          runtime_minutes as double,",
+				"          rating as double,",
+				"          revenue_millions as double,",
+				"          votes as integer,",
+				"          metascore as integer,",
+				"          film_id as integer,",
+				"          director_id as integer,",
+				"          year_id as integer",
+				"     ),",
+				"     allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     isolationLevel: 'READ_UNCOMMITTED',",
+				"     format: 'table') ~> source1",
 				"stgfilm, mapdirector join(stgfilm@director == mapdirector@director,",
 				"     joinType:'inner',",
 				"     matchType:'exact',",
@@ -200,6 +221,7 @@
 				"     updateable:false,",
 				"     upsertable:false,",
 				"     format: 'table',",
+				"     preSQLs:['TRUNCATE TABLE dbo.fact_film\\n'],",
 				"     skipDuplicateMapInputs: true,",
 				"     skipDuplicateMapOutputs: true,",
 				"     errorHandlingOption: 'stopOnFirstError',",
