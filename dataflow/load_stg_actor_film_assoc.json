@@ -24,6 +24,13 @@
 						"type": "DatasetReference"
 					},
 					"name": "mapfilm"
+				},
+				{
+					"dataset": {
+						"referenceName": "stg_actor_film_assoc",
+						"type": "DatasetReference"
+					},
+					"name": "stgactorfilmassoc"
 				}
 			],
 			"sinks": [
@@ -33,6 +40,9 @@
 						"type": "DatasetReference"
 					},
 					"name": "sink1"
+				},
+				{
+					"name": "sink2"
 				}
 			],
 			"transformations": [
@@ -59,6 +69,12 @@
 				},
 				{
 					"name": "select4"
+				},
+				{
+					"name": "filterinsert"
+				},
+				{
+					"name": "filterupdate"
 				}
 			],
 			"scriptLines": [
@@ -97,6 +113,15 @@
 				"     validateSchema: false,",
 				"     isolationLevel: 'READ_UNCOMMITTED',",
 				"     format: 'table') ~> mapfilm",
+				"source(output(",
+				"          stg_actor_film_id as integer,",
+				"          actor_id as integer,",
+				"          film_id as integer",
+				"     ),",
+				"     allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     isolationLevel: 'READ_UNCOMMITTED',",
+				"     format: 'table') ~> stgactorfilmassoc",
 				"source1 derive(Actors = split(Actors, ',')) ~> derivedColumn1",
 				"derivedColumn1 foldDown(unroll(Actors),",
 				"     mapColumn(",
@@ -147,7 +172,9 @@
 				"     ),",
 				"     skipDuplicateMapInputs: true,",
 				"     skipDuplicateMapOutputs: true) ~> select4",
-				"select4 sink(allowSchemaDrift: true,",
+				"select4 filter(ERROR_FUNCTION('')) ~> filterinsert",
+				"select4 filter(ERROR_FUNCTION('INSERT INTO stg_actor_film_assoc')) ~> filterupdate",
+				"filterinsert sink(allowSchemaDrift: true,",
 				"     validateSchema: false,",
 				"     input(",
 				"          stg_actor_film_id as integer,",
@@ -163,7 +190,11 @@
 				"     mapColumn(",
 				"          actor_id,",
 				"          film_id",
-				"     )) ~> sink1"
+				"     )) ~> sink1",
+				"filterupdate sink(allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     skipDuplicateMapInputs: true,",
+				"     skipDuplicateMapOutputs: true) ~> sink2"
 			]
 		}
 	}
