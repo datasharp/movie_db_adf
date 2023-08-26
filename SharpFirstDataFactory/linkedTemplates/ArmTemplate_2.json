@@ -392,6 +392,7 @@
 									"mapdirector": {},
 									"mapyear": {},
 									"mapfilm": {},
+									"source1": {},
 									"sink1": {}
 								}
 							},
@@ -476,7 +477,9 @@
 									"source1": {},
 									"mapactor": {},
 									"mapfilm": {},
-									"sink1": {}
+									"stgactorfilmassoc": {},
+									"insertintostgfilmactorassoc": {},
+									"deletefromstgfilmactorassoc": {}
 								}
 							},
 							"staging": {},
@@ -551,7 +554,9 @@
 								"datasetParameters": {
 									"source1": {},
 									"mapactor": {},
-									"sink1": {}
+									"stgactor": {},
+									"sink1": {},
+									"updatestgactor": {}
 								}
 							},
 							"staging": {},
