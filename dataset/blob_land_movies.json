@@ -14,7 +14,7 @@
 			"location": {
 				"type": "AzureBlobStorageLocation",
 				"fileName": "IMDB-Movie-Data.csv",
-				"container": "landing"
+				"container": "moviedata"
 			},
 			"columnDelimiter": ",",
 			"escapeChar": "\\",
