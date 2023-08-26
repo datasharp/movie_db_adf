@@ -39,10 +39,14 @@
 						"referenceName": "stg_actor_film_assoc",
 						"type": "DatasetReference"
 					},
-					"name": "sink1"
+					"name": "insertintostgfilmactorassoc"
 				},
 				{
-					"name": "sink2"
+					"dataset": {
+						"referenceName": "stg_actor_film_assoc",
+						"type": "DatasetReference"
+					},
+					"name": "deletefromstgfilmactorassoc"
 				}
 			],
 			"transformations": [
@@ -71,10 +75,13 @@
 					"name": "select4"
 				},
 				{
-					"name": "filterinsert"
+					"name": "insertexists"
 				},
 				{
-					"name": "filterupdate"
+					"name": "deletenotexists"
+				},
+				{
+					"name": "delete"
 				}
 			],
 			"scriptLines": [
@@ -172,9 +179,16 @@
 				"     ),",
 				"     skipDuplicateMapInputs: true,",
 				"     skipDuplicateMapOutputs: true) ~> select4",
-				"select4 filter(ERROR_FUNCTION('')) ~> filterinsert",
-				"select4 filter(ERROR_FUNCTION('INSERT INTO stg_actor_film_assoc')) ~> filterupdate",
-				"filterinsert sink(allowSchemaDrift: true,",
+				"select4, stgactorfilmassoc exists(select4@film_id == stgactorfilmassoc@film_id",
+				"     && select4@actor_id == stgactorfilmassoc@actor_id,",
+				"     negate:true,",
+				"     broadcast: 'auto')~> insertexists",
+				"select4, stgactorfilmassoc exists(select4@film_id == stgactorfilmassoc@film_id",
+				"     && select4@actor_id == stgactorfilmassoc@actor_id,",
+				"     negate:true,",
+				"     broadcast: 'auto')~> deletenotexists",
+				"deletenotexists alterRow(deleteIf(true())) ~> delete",
+				"insertexists sink(allowSchemaDrift: true,",
 				"     validateSchema: false,",
 				"     input(",
 				"          stg_actor_film_id as integer,",
@@ -186,15 +200,28 @@
 				"     updateable:false,",
 				"     upsertable:false,",
 				"     format: 'table',",
+				"     batchSize: 100,",
 				"     errorHandlingOption: 'stopOnFirstError',",
 				"     mapColumn(",
 				"          actor_id,",
 				"          film_id",
-				"     )) ~> sink1",
-				"filterupdate sink(allowSchemaDrift: true,",
+				"     )) ~> insertintostgfilmactorassoc",
+				"delete sink(allowSchemaDrift: true,",
 				"     validateSchema: false,",
+				"     input(",
+				"          stg_actor_film_id as integer,",
+				"          actor_id as integer,",
+				"          film_id as integer",
+				"     ),",
+				"     deletable:true,",
+				"     insertable:false,",
+				"     updateable:false,",
+				"     upsertable:false,",
+				"     format: 'table',",
+				"     batchSize: 100,",
 				"     skipDuplicateMapInputs: true,",
-				"     skipDuplicateMapOutputs: true) ~> sink2"
+				"     skipDuplicateMapOutputs: true,",
+				"     errorHandlingOption: 'stopOnFirstError') ~> deletefromstgfilmactorassoc"
 			]
 		}
 	}
