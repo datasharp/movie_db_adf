@@ -13,7 +13,7 @@
 		"typeProperties": {
 			"location": {
 				"type": "AzureBlobStorageLocation",
-				"fileName": "IMDB-Movie-Data.csv",
+				"fileName": "IMDB-Movie-Data_no_double_quotes.csv",
 				"container": "moviedata"
 			},
 			"columnDelimiter": ",",

@@ -27,9 +27,15 @@
 						}
 					},
 					"sink": {
-						"type": "AzureSqlSink",
-						"writeBehavior": "insert",
-						"sqlWriterUseTableLock": false
+						"type": "DelimitedTextSink",
+						"storeSettings": {
+							"type": "AzureBlobStorageWriteSettings"
+						},
+						"formatSettings": {
+							"type": "DelimitedTextWriteSettings",
+							"quoteAllText": true,
+							"fileExtension": ".txt"
+						}
 					},
 					"enableStaging": false,
 					"enableSkipIncompatibleRow": false,
@@ -210,7 +216,7 @@
 				],
 				"outputs": [
 					{
-						"referenceName": "move_db_landing",
+						"referenceName": "blob_land_movies",
 						"type": "DatasetReference"
 					}
 				]
