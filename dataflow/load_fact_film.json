@@ -201,6 +201,7 @@
 				"     updateable:false,",
 				"     upsertable:false,",
 				"     format: 'table',",
+				"     batchSize: 1000,",
 				"     preSQLs:['TRUNCATE TABLE dbo.fact_film\\n'],",
 				"     skipDuplicateMapInputs: true,",
 				"     skipDuplicateMapOutputs: true,",

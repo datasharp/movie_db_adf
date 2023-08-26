@@ -17,6 +17,13 @@
 						"type": "DatasetReference"
 					},
 					"name": "mapactor"
+				},
+				{
+					"dataset": {
+						"referenceName": "stg_actor",
+						"type": "DatasetReference"
+					},
+					"name": "stgactor"
 				}
 			],
 			"sinks": [
@@ -26,6 +33,13 @@
 						"type": "DatasetReference"
 					},
 					"name": "sink1"
+				},
+				{
+					"dataset": {
+						"referenceName": "stg_actor",
+						"type": "DatasetReference"
+					},
+					"name": "updatestgactor"
 				}
 			],
 			"transformations": [
@@ -46,6 +60,15 @@
 				},
 				{
 					"name": "select1"
+				},
+				{
+					"name": "notexistsinsert"
+				},
+				{
+					"name": "updateif"
+				},
+				{
+					"name": "existsupdate"
 				}
 			],
 			"scriptLines": [
@@ -74,6 +97,14 @@
 				"     validateSchema: false,",
 				"     isolationLevel: 'READ_UNCOMMITTED',",
 				"     format: 'table') ~> mapactor",
+				"source(output(",
+				"          actor_id as integer,",
+				"          actor as string",
+				"     ),",
+				"     allowSchemaDrift: false,",
+				"     validateSchema: false,",
+				"     isolationLevel: 'READ_UNCOMMITTED',",
+				"     format: 'table') ~> stgactor",
 				"source1 derive(Actors = split(Actors, ',')) ~> derivedColumn1",
 				"derivedColumn1 foldDown(unroll(Actors),",
 				"     mapColumn(",
@@ -106,7 +137,16 @@
 				"     ),",
 				"     skipDuplicateMapInputs: true,",
 				"     skipDuplicateMapOutputs: true) ~> select1",
-				"select1 sink(allowSchemaDrift: true,",
+				"select1, stgactor exists(select1@actor_id == stgactor@actor_id,",
+				"     negate:true,",
+				"     broadcast: 'auto')~> notexistsinsert",
+				"existsupdate alterRow(updateIf(notEquals(iifNull(stgactor@actor,'NULL',stgactor@actor ),iifNull(select1@actor, 'NULL', select1@actor)))) ~> updateif",
+				"select1, stgactor join(select1@actor_id == stgactor@actor_id,",
+				"     joinType:'inner',",
+				"     matchType:'exact',",
+				"     ignoreSpaces: false,",
+				"     broadcast: 'auto')~> existsupdate",
+				"notexistsinsert sink(allowSchemaDrift: true,",
 				"     validateSchema: false,",
 				"     input(",
 				"          actor_id as integer,",
@@ -117,9 +157,29 @@
 				"     updateable:false,",
 				"     upsertable:false,",
 				"     format: 'table',",
+				"     batchSize: 100,",
 				"     skipDuplicateMapInputs: true,",
 				"     skipDuplicateMapOutputs: true,",
-				"     errorHandlingOption: 'stopOnFirstError') ~> sink1"
+				"     errorHandlingOption: 'stopOnFirstError') ~> sink1",
+				"updateif sink(allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     input(",
+				"          actor_id as integer,",
+				"          actor as string",
+				"     ),",
+				"     deletable:false,",
+				"     insertable:false,",
+				"     updateable:true,",
+				"     upsertable:false,",
+				"     format: 'table',",
+				"     batchSize: 100,",
+				"     skipDuplicateMapInputs: true,",
+				"     skipDuplicateMapOutputs: true,",
+				"     errorHandlingOption: 'stopOnFirstError',",
+				"     mapColumn(",
+				"          actor_id = select1@actor_id,",
+				"          actor = select1@actor",
+				"     )) ~> updatestgactor"
 			]
 		}
 	}
