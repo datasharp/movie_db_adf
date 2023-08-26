@@ -75,7 +75,7 @@
 					"name": "select4"
 				},
 				{
-					"name": "insertexists"
+					"name": "insertwherenotexists"
 				},
 				{
 					"name": "deletenotexists"
@@ -182,13 +182,13 @@
 				"select4, stgactorfilmassoc exists(select4@film_id == stgactorfilmassoc@film_id",
 				"     && select4@actor_id == stgactorfilmassoc@actor_id,",
 				"     negate:true,",
-				"     broadcast: 'auto')~> insertexists",
-				"select4, stgactorfilmassoc exists(select4@film_id == stgactorfilmassoc@film_id",
+				"     broadcast: 'auto')~> insertwherenotexists",
+				"stgactorfilmassoc, select4 exists(select4@film_id == stgactorfilmassoc@film_id",
 				"     && select4@actor_id == stgactorfilmassoc@actor_id,",
 				"     negate:true,",
 				"     broadcast: 'auto')~> deletenotexists",
 				"deletenotexists alterRow(deleteIf(true())) ~> delete",
-				"insertexists sink(allowSchemaDrift: true,",
+				"insertwherenotexists sink(allowSchemaDrift: true,",
 				"     validateSchema: false,",
 				"     input(",
 				"          stg_actor_film_id as integer,",
