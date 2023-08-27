@@ -25,7 +25,14 @@
 						"referenceName": "move_db_landing",
 						"type": "DatasetReference"
 					},
-					"name": "landingmoviesdb"
+					"name": "updatelandingmoviesdb"
+				},
+				{
+					"dataset": {
+						"referenceName": "move_db_landing",
+						"type": "DatasetReference"
+					},
+					"name": "insertland"
 				}
 			],
 			"transformations": [
@@ -34,6 +41,9 @@
 				},
 				{
 					"name": "updateif"
+				},
+				{
+					"name": "notexistsinsert"
 				}
 			],
 			"scriptLines": [
@@ -99,6 +109,11 @@
 				"     updateIf(notEquals(iifNull(toInteger(bloblanding@Votes),-1,toInteger(bloblanding@Votes)),iifNull(landingmoviesdbtarget@Votes,-1,landingmoviesdbtarget@Votes))),",
 				"     updateIf(notEquals(iifNull(toInteger(bloblanding@Metascore),-1,toInteger(bloblanding@Metascore)),iifNull(landingmoviesdbtarget@Metascore,-1,landingmoviesdbtarget@Metascore))),",
 				"     updateIf(notEquals(iifNull(toInteger({Revenue (Millions)}),-1,toInteger({Revenue (Millions)})),iifNull(Revenue_Millions,-1,Revenue_Millions)))) ~> updateif",
+				"bloblanding, landingmoviesdbtarget exists(toInteger(bloblanding@Year) == landingmoviesdbtarget@Year",
+				"     && bloblanding@Director == landingmoviesdbtarget@Director",
+				"     && bloblanding@Title == landingmoviesdbtarget@Title,",
+				"     negate:true,",
+				"     broadcast: 'auto')~> notexistsinsert",
 				"updateif sink(allowSchemaDrift: true,",
 				"     validateSchema: false,",
 				"     input(",
@@ -136,7 +151,45 @@
 				"          Votes,",
 				"          Revenue_Millions = {Revenue (Millions)},",
 				"          Metascore",
-				"     )) ~> landingmoviesdb"
+				"     )) ~> updatelandingmoviesdb",
+				"notexistsinsert sink(allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     input(",
+				"          Rank as integer,",
+				"          Title as string,",
+				"          Genre as string,",
+				"          Description as string,",
+				"          Director as string,",
+				"          Actors as string,",
+				"          Year as integer,",
+				"          Runtime_Minutes as integer,",
+				"          Rating as double,",
+				"          Votes as integer,",
+				"          Revenue_Millions as double,",
+				"          Metascore as integer",
+				"     ),",
+				"     deletable:false,",
+				"     insertable:true,",
+				"     updateable:false,",
+				"     upsertable:false,",
+				"     format: 'table',",
+				"     skipDuplicateMapInputs: true,",
+				"     skipDuplicateMapOutputs: true,",
+				"     errorHandlingOption: 'stopOnFirstError',",
+				"     mapColumn(",
+				"          Rank,",
+				"          Title,",
+				"          Genre,",
+				"          Description,",
+				"          Director,",
+				"          Actors,",
+				"          Year,",
+				"          Runtime_Minutes = {Runtime (Minutes)},",
+				"          Rating,",
+				"          Votes,",
+				"          Revenue_Millions = {Revenue (Millions)},",
+				"          Metascore",
+				"     )) ~> insertland"
 			]
 		}
 	}
