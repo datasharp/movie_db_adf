@@ -3,11 +3,11 @@
 	"properties": {
 		"activities": [
 			{
-				"name": "copy blob landing data to database landing table",
-				"type": "Copy",
+				"name": "load_landing",
+				"type": "ExecuteDataFlow",
 				"dependsOn": [],
 				"policy": {
-					"timeout": "0.01:00:10",
+					"timeout": "0.12:00:00",
 					"retry": 0,
 					"retryIntervalInSeconds": 30,
 					"secureOutput": false,
@@ -15,211 +15,16 @@
 				},
 				"userProperties": [],
 				"typeProperties": {
-					"source": {
-						"type": "DelimitedTextSource",
-						"storeSettings": {
-							"type": "AzureBlobStorageReadSettings",
-							"recursive": true,
-							"enablePartitionDiscovery": false
-						},
-						"formatSettings": {
-							"type": "DelimitedTextReadSettings"
-						}
+					"dataflow": {
+						"referenceName": "load_landing",
+						"type": "DataFlowReference"
 					},
-					"sink": {
-						"type": "DelimitedTextSink",
-						"storeSettings": {
-							"type": "AzureBlobStorageWriteSettings"
-						},
-						"formatSettings": {
-							"type": "DelimitedTextWriteSettings",
-							"quoteAllText": true,
-							"fileExtension": ".txt"
-						}
+					"compute": {
+						"coreCount": 8,
+						"computeType": "General"
 					},
-					"enableStaging": false,
-					"enableSkipIncompatibleRow": false,
-					"logSettings": {
-						"enableCopyActivityLog": true,
-						"copyActivityLogSettings": {
-							"logLevel": "Warning",
-							"enableReliableLogging": false
-						},
-						"logLocationSettings": {
-							"linkedServiceName": {
-								"referenceName": "landing_blob_linked_service",
-								"type": "LinkedServiceReference"
-							},
-							"path": "log"
-						}
-					},
-					"translator": {
-						"type": "TabularTranslator",
-						"mappings": [
-							{
-								"source": {
-									"name": "Rank",
-									"type": "String",
-									"physicalType": "String"
-								},
-								"sink": {
-									"name": "Rank",
-									"type": "Int16",
-									"physicalType": "smallint"
-								}
-							},
-							{
-								"source": {
-									"name": "Title",
-									"type": "String",
-									"physicalType": "String"
-								},
-								"sink": {
-									"name": "Title",
-									"type": "String",
-									"physicalType": "nvarchar"
-								}
-							},
-							{
-								"source": {
-									"name": "Genre",
-									"type": "String",
-									"physicalType": "String"
-								},
-								"sink": {
-									"name": "Genre",
-									"type": "String",
-									"physicalType": "nvarchar"
-								}
-							},
-							{
-								"source": {
-									"name": "Description",
-									"type": "String",
-									"physicalType": "String"
-								},
-								"sink": {
-									"name": "Description",
-									"type": "String",
-									"physicalType": "varchar"
-								}
-							},
-							{
-								"source": {
-									"name": "Director",
-									"type": "String",
-									"physicalType": "String"
-								},
-								"sink": {
-									"name": "Director",
-									"type": "String",
-									"physicalType": "nvarchar"
-								}
-							},
-							{
-								"source": {
-									"name": "Actors",
-									"type": "String",
-									"physicalType": "String"
-								},
-								"sink": {
-									"name": "Actors",
-									"type": "String",
-									"physicalType": "nvarchar"
-								}
-							},
-							{
-								"source": {
-									"name": "Year",
-									"type": "String",
-									"physicalType": "String"
-								},
-								"sink": {
-									"name": "Year",
-									"type": "Int16",
-									"physicalType": "smallint"
-								}
-							},
-							{
-								"source": {
-									"name": "Runtime (Minutes)",
-									"type": "String",
-									"physicalType": "String"
-								},
-								"sink": {
-									"name": "Runtime_Minutes",
-									"type": "Double",
-									"physicalType": "float"
-								}
-							},
-							{
-								"source": {
-									"name": "Rating",
-									"type": "String",
-									"physicalType": "String"
-								},
-								"sink": {
-									"name": "Rating",
-									"type": "Double",
-									"physicalType": "float"
-								}
-							},
-							{
-								"source": {
-									"name": "Votes",
-									"type": "String",
-									"physicalType": "String"
-								},
-								"sink": {
-									"name": "Votes",
-									"type": "Double",
-									"physicalType": "float"
-								}
-							},
-							{
-								"source": {
-									"name": "Revenue (Millions)",
-									"type": "String",
-									"physicalType": "String"
-								},
-								"sink": {
-									"name": "Revenue_Millions",
-									"type": "Double",
-									"physicalType": "float"
-								}
-							},
-							{
-								"source": {
-									"name": "Metascore",
-									"type": "String",
-									"physicalType": "String"
-								},
-								"sink": {
-									"name": "Metascore",
-									"type": "Byte",
-									"physicalType": "tinyint"
-								}
-							}
-						],
-						"typeConversion": true,
-						"typeConversionSettings": {
-							"allowDataTruncation": true,
-							"treatBooleanAsNumber": false
-						}
-					}
-				},
-				"inputs": [
-					{
-						"referenceName": "blob_land_movies",
-						"type": "DatasetReference"
-					}
-				],
-				"outputs": [
-					{
-						"referenceName": "blob_land_movies",
-						"type": "DatasetReference"
-					}
-				]
+					"traceLevel": "Fine"
+				}
 			}
 		],
 		"annotations": [],

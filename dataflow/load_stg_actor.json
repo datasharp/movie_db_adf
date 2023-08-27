@@ -32,7 +32,7 @@
 						"referenceName": "stg_actor",
 						"type": "DatasetReference"
 					},
-					"name": "sink1"
+					"name": "insertstgactor"
 				},
 				{
 					"dataset": {
@@ -140,7 +140,7 @@
 				"select1, stgactor exists(select1@actor_id == stgactor@actor_id,",
 				"     negate:true,",
 				"     broadcast: 'auto')~> notexistsinsert",
-				"existsupdate alterRow(updateIf(notEquals(iifNull(stgactor@actor,'NULL',stgactor@actor ),iifNull(select1@actor, 'NULL', select1@actor)))) ~> updateif",
+				"existsupdate alterRow(updateIf(notEquals(iifNull(stgactor@actor,'NULL',stgactor@actor),iifNull(select1@actor,'NULL',select1@actor)))) ~> updateif",
 				"select1, stgactor join(select1@actor_id == stgactor@actor_id,",
 				"     joinType:'inner',",
 				"     matchType:'exact',",
@@ -160,7 +160,7 @@
 				"     batchSize: 100,",
 				"     skipDuplicateMapInputs: true,",
 				"     skipDuplicateMapOutputs: true,",
-				"     errorHandlingOption: 'stopOnFirstError') ~> sink1",
+				"     errorHandlingOption: 'stopOnFirstError') ~> insertstgactor",
 				"updateif sink(allowSchemaDrift: true,",
 				"     validateSchema: false,",
 				"     input(",
