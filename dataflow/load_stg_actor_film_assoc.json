@@ -82,6 +82,9 @@
 				},
 				{
 					"name": "delete"
+				},
+				{
+					"name": "select5"
 				}
 			],
 			"scriptLines": [
@@ -179,15 +182,21 @@
 				"     ),",
 				"     skipDuplicateMapInputs: true,",
 				"     skipDuplicateMapOutputs: true) ~> select4",
-				"select4, stgactorfilmassoc exists(select4@film_id == stgactorfilmassoc@film_id",
-				"     && select4@actor_id == stgactorfilmassoc@actor_id,",
+				"select4, select5 exists(select4@film_id == select5@film_id",
+				"     && select4@actor_id == select5@actor_id,",
 				"     negate:true,",
 				"     broadcast: 'auto')~> insertwherenotexists",
-				"stgactorfilmassoc, select4 exists(select4@film_id == stgactorfilmassoc@film_id",
-				"     && select4@actor_id == stgactorfilmassoc@actor_id,",
+				"select5, select4 exists(select4@film_id == select5@film_id",
+				"     && select4@actor_id == select5@actor_id,",
 				"     negate:true,",
 				"     broadcast: 'auto')~> deletenotexists",
 				"deletenotexists alterRow(deleteIf(true())) ~> delete",
+				"stgactorfilmassoc select(mapColumn(",
+				"          actor_id,",
+				"          film_id",
+				"     ),",
+				"     skipDuplicateMapInputs: true,",
+				"     skipDuplicateMapOutputs: true) ~> select5",
 				"insertwherenotexists sink(allowSchemaDrift: true,",
 				"     validateSchema: false,",
 				"     input(",
