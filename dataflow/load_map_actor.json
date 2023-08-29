@@ -119,7 +119,7 @@
 				"     matchType:'exact',",
 				"     ignoreSpaces: false,",
 				"     broadcast: 'auto')~> existsUpdate",
-				"existsUpdate alterRow() ~> updateIfExists",
+				"existsUpdate alterRow(updateIf(notEquals(iifNull(Actors), iifNull(actor)))) ~> updateIfExists",
 				"selectActors, targetMapActors exists(Actors == actor,",
 				"     negate:true,",
 				"     broadcast: 'auto')~> notExistsInsert",
