@@ -136,7 +136,7 @@
 				"     insertable:false,",
 				"     updateable:true,",
 				"     upsertable:false,",
-				"     keys:[(Actors)],",
+				"     keys:['actor'],",
 				"     format: 'table',",
 				"     batchSize: 100,",
 				"     errorHandlingOption: 'stopOnFirstError',",
