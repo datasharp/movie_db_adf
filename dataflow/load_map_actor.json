@@ -10,6 +10,13 @@
 						"type": "DatasetReference"
 					},
 					"name": "bloblandmovies"
+				},
+				{
+					"dataset": {
+						"referenceName": "map_actor",
+						"type": "DatasetReference"
+					},
+					"name": "targetMapActors"
 				}
 			],
 			"sinks": [
@@ -19,6 +26,13 @@
 						"type": "DatasetReference"
 					},
 					"name": "loadintomapactors"
+				},
+				{
+					"dataset": {
+						"referenceName": "map_actor",
+						"type": "DatasetReference"
+					},
+					"name": "insertMapActor"
 				}
 			],
 			"transformations": [
@@ -36,6 +50,15 @@
 				},
 				{
 					"name": "cleanActors"
+				},
+				{
+					"name": "existsUpdate"
+				},
+				{
+					"name": "updateIfExists"
+				},
+				{
+					"name": "notExistsInsert"
 				}
 			],
 			"scriptLines": [
@@ -56,6 +79,14 @@
 				"     allowSchemaDrift: true,",
 				"     validateSchema: false,",
 				"     ignoreNoFilesFound: false) ~> bloblandmovies",
+				"source(output(",
+				"          actor_id as integer,",
+				"          actor as string",
+				"     ),",
+				"     allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     isolationLevel: 'READ_UNCOMMITTED',",
+				"     format: 'table') ~> targetMapActors",
 				"bloblandmovies derive(Actors = split(Actors, ',')) ~> splitActors",
 				"splitActors foldDown(unroll(Actors),",
 				"     mapColumn(",
@@ -82,7 +113,16 @@
 				"     skipDuplicateMapInputs: true,",
 				"     skipDuplicateMapOutputs: true) ~> selectActors",
 				"flattenActors derive(Actors = trim(Actors)) ~> cleanActors",
-				"selectActors sink(allowSchemaDrift: true,",
+				"selectActors, targetMapActors join(Actors == actor,",
+				"     joinType:'inner',",
+				"     matchType:'exact',",
+				"     ignoreSpaces: false,",
+				"     broadcast: 'auto')~> existsUpdate",
+				"existsUpdate alterRow() ~> updateIfExists",
+				"selectActors, targetMapActors exists(Actors == actor,",
+				"     negate:true,",
+				"     broadcast: 'auto')~> notExistsInsert",
+				"updateIfExists sink(allowSchemaDrift: true,",
 				"     validateSchema: false,",
 				"     input(",
 				"          actor_id as integer,",
@@ -98,7 +138,24 @@
 				"     errorHandlingOption: 'stopOnFirstError',",
 				"     mapColumn(",
 				"          actor = Actors",
-				"     )) ~> loadintomapactors"
+				"     )) ~> loadintomapactors",
+				"notExistsInsert sink(allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     input(",
+				"          actor_id as integer,",
+				"          actor as string",
+				"     ),",
+				"     deletable:false,",
+				"     insertable:true,",
+				"     updateable:false,",
+				"     upsertable:false,",
+				"     format: 'table',",
+				"     skipDuplicateMapInputs: true,",
+				"     skipDuplicateMapOutputs: true,",
+				"     errorHandlingOption: 'stopOnFirstError',",
+				"     mapColumn(",
+				"          actor = Actors",
+				"     )) ~> insertMapActor"
 			]
 		}
 	}
