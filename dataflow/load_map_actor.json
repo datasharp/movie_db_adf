@@ -9,7 +9,7 @@
 						"referenceName": "blob_land_movies",
 						"type": "DatasetReference"
 					},
-					"name": "source1"
+					"name": "bloblandmovies"
 				}
 			],
 			"sinks": [
@@ -23,16 +23,16 @@
 			],
 			"transformations": [
 				{
-					"name": "derivedColumn1"
+					"name": "splitActors"
 				},
 				{
-					"name": "flatten1"
+					"name": "flattenActors"
 				},
 				{
-					"name": "aggregate1"
+					"name": "aggOnActors"
 				},
 				{
-					"name": "select1"
+					"name": "selectActors"
 				},
 				{
 					"name": "cleanActors"
@@ -55,9 +55,9 @@
 				"     ),",
 				"     allowSchemaDrift: true,",
 				"     validateSchema: false,",
-				"     ignoreNoFilesFound: false) ~> source1",
-				"source1 derive(Actors = split(Actors, ',')) ~> derivedColumn1",
-				"derivedColumn1 foldDown(unroll(Actors),",
+				"     ignoreNoFilesFound: false) ~> bloblandmovies",
+				"bloblandmovies derive(Actors = split(Actors, ',')) ~> splitActors",
+				"splitActors foldDown(unroll(Actors),",
 				"     mapColumn(",
 				"          Rank,",
 				"          Title,",
@@ -73,16 +73,16 @@
 				"          Metascore",
 				"     ),",
 				"     skipDuplicateMapInputs: false,",
-				"     skipDuplicateMapOutputs: false) ~> flatten1",
+				"     skipDuplicateMapOutputs: false) ~> flattenActors",
 				"cleanActors aggregate(groupBy(Actors),",
-				"     each(match(name=='Rank'), $$ = first($$))) ~> aggregate1",
-				"aggregate1 select(mapColumn(",
+				"     each(match(name=='Rank'), $$ = first($$))) ~> aggOnActors",
+				"aggOnActors select(mapColumn(",
 				"          Actors",
 				"     ),",
 				"     skipDuplicateMapInputs: true,",
-				"     skipDuplicateMapOutputs: true) ~> select1",
-				"flatten1 derive(Actors = trim(Actors)) ~> cleanActors",
-				"select1 sink(allowSchemaDrift: true,",
+				"     skipDuplicateMapOutputs: true) ~> selectActors",
+				"flattenActors derive(Actors = trim(Actors)) ~> cleanActors",
+				"selectActors sink(allowSchemaDrift: true,",
 				"     validateSchema: false,",
 				"     input(",
 				"          actor_id as integer,",
