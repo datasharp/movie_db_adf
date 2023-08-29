@@ -6,10 +6,10 @@
 			"sources": [
 				{
 					"dataset": {
-						"referenceName": "blob_land_movies",
+						"referenceName": "move_db_landing",
 						"type": "DatasetReference"
 					},
-					"name": "bloblandmovies"
+					"name": "landMovies"
 				},
 				{
 					"dataset": {
@@ -63,22 +63,23 @@
 			],
 			"scriptLines": [
 				"source(output(",
-				"          Rank as string,",
+				"          Rank as integer,",
 				"          Title as string,",
 				"          Genre as string,",
 				"          Description as string,",
 				"          Director as string,",
 				"          Actors as string,",
-				"          Year as string,",
-				"          {Runtime (Minutes)} as string,",
-				"          Rating as string,",
-				"          Votes as string,",
-				"          {Revenue (Millions)} as string,",
-				"          Metascore as string",
+				"          Year as integer,",
+				"          Runtime_Minutes as integer,",
+				"          Rating as double,",
+				"          Votes as integer,",
+				"          Revenue_Millions as double,",
+				"          Metascore as integer",
 				"     ),",
 				"     allowSchemaDrift: true,",
 				"     validateSchema: false,",
-				"     ignoreNoFilesFound: false) ~> bloblandmovies",
+				"     isolationLevel: 'READ_UNCOMMITTED',",
+				"     format: 'table') ~> landMovies",
 				"source(output(",
 				"          actor_id as integer,",
 				"          actor as string",
@@ -87,7 +88,7 @@
 				"     validateSchema: false,",
 				"     isolationLevel: 'READ_UNCOMMITTED',",
 				"     format: 'table') ~> targetMapActors",
-				"bloblandmovies derive(Actors = split(Actors, ',')) ~> splitActors",
+				"landMovies derive(Actors = split(Actors, ',')) ~> splitActors",
 				"splitActors foldDown(unroll(Actors),",
 				"     mapColumn(",
 				"          Rank,",
@@ -97,10 +98,10 @@
 				"          Director,",
 				"          Actors,",
 				"          Year,",
-				"          {Runtime (Minutes)},",
+				"          {Runtime (Minutes)} = Runtime_Minutes,",
 				"          Rating,",
 				"          Votes,",
-				"          {Revenue (Millions)},",
+				"          {Revenue (Millions)} = Revenue_Millions,",
 				"          Metascore",
 				"     ),",
 				"     skipDuplicateMapInputs: false,",
