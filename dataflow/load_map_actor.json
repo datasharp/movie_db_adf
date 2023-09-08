@@ -133,7 +133,7 @@
 				"     insertable:false,",
 				"     updateable:true,",
 				"     upsertable:false,",
-				"     keys:['actor'],",
+				"     keys:['actor_id'],",
 				"     format: 'table',",
 				"     batchSize: 100,",
 				"     errorHandlingOption: 'stopOnFirstError',",
