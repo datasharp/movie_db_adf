@@ -127,7 +127,11 @@
 				"     format: 'table',",
 				"     skipDuplicateMapInputs: true,",
 				"     skipDuplicateMapOutputs: true,",
-				"     errorHandlingOption: 'stopOnFirstError') ~> updateMapYear"
+				"     errorHandlingOption: 'stopOnFirstError',",
+				"     mapColumn(",
+				"          year_id,",
+				"          year = distinctYear@year",
+				"     )) ~> updateMapYear"
 			]
 		}
 	}
