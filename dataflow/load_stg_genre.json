@@ -9,7 +9,7 @@
 						"referenceName": "move_db_landing",
 						"type": "DatasetReference"
 					},
-					"name": "source1"
+					"name": "landingmovies"
 				},
 				{
 					"dataset": {
@@ -69,7 +69,7 @@
 				"     allowSchemaDrift: true,",
 				"     validateSchema: false,",
 				"     isolationLevel: 'READ_UNCOMMITTED',",
-				"     format: 'table') ~> source1",
+				"     format: 'table') ~> landingmovies",
 				"source(output(",
 				"          genre_id as integer,",
 				"          genre as string",
@@ -78,7 +78,7 @@
 				"     validateSchema: false,",
 				"     isolationLevel: 'READ_UNCOMMITTED',",
 				"     format: 'table') ~> mapgenre",
-				"source1 derive(Genre = split(Genre, ',')) ~> splitGenre",
+				"landingmovies derive(Genre = split(Genre, ',')) ~> splitGenre",
 				"splitGenre foldDown(unroll(Genre),",
 				"     mapColumn(",
 				"          Rank,",
