@@ -696,8 +696,10 @@
 								"type": "DataFlowReference",
 								"parameters": {},
 								"datasetParameters": {
-									"stgfilm": {},
-									"sink1": {}
+									"landingmovies": {},
+									"targetMapYear": {},
+									"insertMapYear": {},
+									"updateMapYear": {}
 								}
 							},
 							"staging": {},
@@ -1183,7 +1185,7 @@
 			"properties": {
 				"activities": [
 					{
-						"name": "load_map_dir",
+						"name": "load_map_year",
 						"type": "ExecuteDataFlow",
 						"dependsOn": [],
 						"policy": {
@@ -1196,15 +1198,14 @@
 						"userProperties": [],
 						"typeProperties": {
 							"dataflow": {
-								"referenceName": "load_map_dir",
+								"referenceName": "load_map_year",
 								"type": "DataFlowReference",
 								"parameters": {},
 								"datasetParameters": {
 									"landingmovies": {},
-									"mapfilm": {},
-									"mapdirector": {},
-									"sinkMapDirector": {},
-									"insertMapDirector": {}
+									"targetMapYear": {},
+									"insertMapYear": {},
+									"updateMapYear": {}
 								}
 							},
 							"staging": {},
@@ -1223,7 +1224,7 @@
 				"annotations": []
 			},
 			"dependsOn": [
-				"[concat(variables('factoryId'), '/dataflows/load_map_dir')]"
+				"[concat(variables('factoryId'), '/dataflows/load_map_year')]"
 			]
 		},
 		{
@@ -3427,10 +3428,17 @@
 					"sources": [
 						{
 							"dataset": {
-								"referenceName": "stg_film",
+								"referenceName": "move_db_landing",
 								"type": "DatasetReference"
 							},
-							"name": "stgfilm"
+							"name": "landingmovies"
+						},
+						{
+							"dataset": {
+								"referenceName": "map_year",
+								"type": "DatasetReference"
+							},
+							"name": "targetMapYear"
 						}
 					],
 					"sinks": [
@@ -3439,42 +3447,77 @@
 								"referenceName": "map_year",
 								"type": "DatasetReference"
 							},
-							"name": "sink1"
+							"name": "insertMapYear"
+						},
+						{
+							"dataset": {
+								"referenceName": "map_year",
+								"type": "DatasetReference"
+							},
+							"name": "updateMapYear"
 						}
 					],
 					"transformations": [
 						{
-							"name": "select1"
+							"name": "selectYear"
 						},
 						{
 							"name": "distinctYear"
+						},
+						{
+							"name": "notExistsInsert"
+						},
+						{
+							"name": "existsUpdate"
+						},
+						{
+							"name": "updateIf"
 						}
 					],
 					"scriptLines": [
 						"source(output(",
-						"          film_id as integer,",
-						"          title as string,",
-						"          description as string,",
-						"          director as string,",
-						"          film_year as integer,",
-						"          runtime_minutes as integer,",
-						"          rating as double,",
-						"          votes as integer,",
-						"          revenue_millions as double,",
-						"          metascore as integer",
+						"          Rank as integer,",
+						"          Title as string,",
+						"          Genre as string,",
+						"          Description as string,",
+						"          Director as string,",
+						"          Actors as string,",
+						"          Year as integer,",
+						"          Runtime_Minutes as integer,",
+						"          Rating as double,",
+						"          Votes as integer,",
+						"          Revenue_Millions as double,",
+						"          Metascore as integer",
 						"     ),",
 						"     allowSchemaDrift: true,",
 						"     validateSchema: false,",
 						"     isolationLevel: 'READ_UNCOMMITTED',",
-						"     format: 'table') ~> stgfilm",
-						"stgfilm select(mapColumn(",
-						"          year = film_year",
+						"     format: 'table') ~> landingmovies",
+						"source(output(",
+						"          year_id as integer,",
+						"          year as integer",
+						"     ),",
+						"     allowSchemaDrift: true,",
+						"     validateSchema: false,",
+						"     isolationLevel: 'READ_UNCOMMITTED',",
+						"     format: 'table') ~> targetMapYear",
+						"landingmovies select(mapColumn(",
+						"          year = Year",
 						"     ),",
 						"     skipDuplicateMapInputs: true,",
-						"     skipDuplicateMapOutputs: true) ~> select1",
-						"select1 aggregate(groupBy(year),",
+						"     skipDuplicateMapOutputs: true) ~> selectYear",
+						"selectYear aggregate(groupBy(year),",
 						"     each(match(name!='year'), $$ = first($$))) ~> distinctYear",
-						"distinctYear sink(allowSchemaDrift: true,",
+						"distinctYear, targetMapYear exists(distinctYear@year == targetMapYear@year,",
+						"     negate:true,",
+						"     broadcast: 'auto')~> notExistsInsert",
+						"distinctYear, targetMapYear join(distinctYear@year == targetMapYear@year,",
+						"     joinType:'inner',",
+						"     matchType:'exact',",
+						"     ignoreSpaces: false,",
+						"     broadcast: 'auto')~> existsUpdate",
+						"existsUpdate alterRow(updateIf(notEquals(iifNull(targetMapYear@year,-1,targetMapYear@year),iifNull(distinctYear@year,-1,distinctYear@year)))) ~> updateIf",
+						"notExistsInsert sink(allowSchemaDrift: true,",
 						"     validateSchema: false,",
 						"     input(",
 						"          year_id as integer,",
@@ -3485,17 +3528,37 @@
 						"     updateable:false,",
 						"     upsertable:false,",
 						"     format: 'table',",
+						"     batchSize: 100,",
 						"     skipDuplicateMapInputs: true,",
 						"     skipDuplicateMapOutputs: true,",
 						"     errorHandlingOption: 'stopOnFirstError',",
 						"     mapColumn(",
 						"          year",
-						"     )) ~> sink1"
+						"     )) ~> insertMapYear",
+						"updateIf sink(allowSchemaDrift: true,",
+						"     validateSchema: false,",
+						"     input(",
+						"          year_id as integer,",
+						"          year as integer",
+						"     ),",
+						"     deletable:false,",
+						"     insertable:false,",
+						"     updateable:true,",
+						"     upsertable:false,",
+						"     keys:['year_id'],",
+						"     format: 'table',",
+						"     skipDuplicateMapInputs: true,",
+						"     skipDuplicateMapOutputs: true,",
+						"     errorHandlingOption: 'stopOnFirstError',",
+						"     mapColumn(",
+						"          year_id,",
+						"          year = distinctYear@year",
+						"     )) ~> updateMapYear"
 					]
 				}
 			},
 			"dependsOn": [
-				"[concat(variables('factoryId'), '/datasets/stg_film')]",
+				"[concat(variables('factoryId'), '/datasets/move_db_landing')]",
 				"[concat(variables('factoryId'), '/datasets/map_year')]"
 			]
 		},
