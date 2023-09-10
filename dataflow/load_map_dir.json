@@ -121,7 +121,7 @@
 				"     broadcast: 'auto')~> existsUpdate",
 				"existsUpdate alterRow(updateIf(notEquals(iifNull(mapdirector@director,'NULL',mapdirector@director),iifNull(distinctDirector@director,'NULL',distinctDirector@director)))) ~> updateIf",
 				"distinctDirector, mapdirector exists(distinctDirector@director == mapdirector@director,",
-				"     negate:false,",
+				"     negate:true,",
 				"     broadcast: 'auto')~> notExistsInsert",
 				"updateIf sink(allowSchemaDrift: true,",
 				"     validateSchema: false,",
