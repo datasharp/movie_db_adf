@@ -6,10 +6,10 @@
 			"sources": [
 				{
 					"dataset": {
-						"referenceName": "blob_land_movies",
+						"referenceName": "move_db_landing",
 						"type": "DatasetReference"
 					},
-					"name": "source1"
+					"name": "landmovies"
 				},
 				{
 					"dataset": {
@@ -32,47 +32,48 @@
 						"referenceName": "stg_genre_film_assoc",
 						"type": "DatasetReference"
 					},
-					"name": "sink1"
+					"name": "sinkStgGenreFilmAssoc"
 				}
 			],
 			"transformations": [
 				{
-					"name": "derivedColumn1"
+					"name": "splitGenre"
 				},
 				{
-					"name": "flatten1"
+					"name": "flattenGenre"
 				},
 				{
-					"name": "cleanGenre"
+					"name": "trimGenre"
 				},
 				{
-					"name": "join1"
+					"name": "joinMapFilm"
 				},
 				{
-					"name": "join2"
+					"name": "joinMapGenre"
 				},
 				{
-					"name": "select1"
+					"name": "selectFilmIdGenreId"
 				}
 			],
 			"scriptLines": [
 				"source(output(",
-				"          Rank as string,",
+				"          Rank as integer,",
 				"          Title as string,",
 				"          Genre as string,",
 				"          Description as string,",
 				"          Director as string,",
 				"          Actors as string,",
-				"          Year as string,",
-				"          {Runtime (Minutes)} as string,",
-				"          Rating as string,",
-				"          Votes as string,",
-				"          {Revenue (Millions)} as string,",
-				"          Metascore as string",
+				"          Year as integer,",
+				"          Runtime_Minutes as integer,",
+				"          Rating as double,",
+				"          Votes as integer,",
+				"          Revenue_Millions as double,",
+				"          Metascore as integer",
 				"     ),",
 				"     allowSchemaDrift: true,",
 				"     validateSchema: false,",
-				"     ignoreNoFilesFound: false) ~> source1",
+				"     isolationLevel: 'READ_UNCOMMITTED',",
+				"     format: 'table') ~> landmovies",
 				"source(output(",
 				"          genre_id as integer,",
 				"          genre as string",
@@ -91,8 +92,8 @@
 				"     validateSchema: false,",
 				"     isolationLevel: 'READ_UNCOMMITTED',",
 				"     format: 'table') ~> mapfilm",
-				"source1 derive(Genre = split(Genre, ',')) ~> derivedColumn1",
-				"derivedColumn1 foldDown(unroll(Genre),",
+				"landmovies derive(Genre = split(Genre, ',')) ~> splitGenre",
+				"splitGenre foldDown(unroll(Genre),",
 				"     mapColumn(",
 				"          Rank,",
 				"          Title,",
@@ -108,26 +109,26 @@
 				"          Metascore",
 				"     ),",
 				"     skipDuplicateMapInputs: false,",
-				"     skipDuplicateMapOutputs: false) ~> flatten1",
-				"flatten1 derive(Genre = trim(Genre)) ~> cleanGenre",
-				"cleanGenre, mapfilm join(flatten1@Director == mapfilm@director",
-				"     && flatten1@Title == mapfilm@title,",
+				"     skipDuplicateMapOutputs: false) ~> flattenGenre",
+				"flattenGenre derive(Genre = trim(Genre)) ~> trimGenre",
+				"trimGenre, mapfilm join(flattenGenre@Director == mapfilm@director",
+				"     && flattenGenre@Title == mapfilm@title,",
 				"     joinType:'inner',",
 				"     matchType:'exact',",
 				"     ignoreSpaces: false,",
-				"     broadcast: 'auto')~> join1",
-				"join1, mapgenre join(cleanGenre@Genre == mapgenre@genre,",
+				"     broadcast: 'auto')~> joinMapFilm",
+				"joinMapFilm, mapgenre join(trimGenre@Genre == mapgenre@genre,",
 				"     joinType:'inner',",
 				"     matchType:'exact',",
 				"     ignoreSpaces: false,",
-				"     broadcast: 'auto')~> join2",
-				"join2 select(mapColumn(",
+				"     broadcast: 'auto')~> joinMapGenre",
+				"joinMapGenre select(mapColumn(",
 				"          film_id,",
 				"          genre_id",
 				"     ),",
 				"     skipDuplicateMapInputs: true,",
-				"     skipDuplicateMapOutputs: true) ~> select1",
-				"select1 sink(allowSchemaDrift: true,",
+				"     skipDuplicateMapOutputs: true) ~> selectFilmIdGenreId",
+				"selectFilmIdGenreId sink(allowSchemaDrift: true,",
 				"     validateSchema: false,",
 				"     input(",
 				"          stg_genre_film_id as integer,",
@@ -145,7 +146,7 @@
 				"     mapColumn(",
 				"          genre_id,",
 				"          film_id",
-				"     )) ~> sink1"
+				"     )) ~> sinkStgGenreFilmAssoc"
 			]
 		}
 	}
