@@ -10,6 +10,13 @@
 						"type": "DatasetReference"
 					},
 					"name": "landmovies"
+				},
+				{
+					"dataset": {
+						"referenceName": "map_film",
+						"type": "DatasetReference"
+					},
+					"name": "targetMapFilm"
 				}
 			],
 			"sinks": [
@@ -18,12 +25,28 @@
 						"referenceName": "map_film",
 						"type": "DatasetReference"
 					},
-					"name": "sink1"
+					"name": "insertMapFilm"
+				},
+				{
+					"dataset": {
+						"referenceName": "map_film",
+						"type": "DatasetReference"
+					},
+					"name": "updateMapFilm"
 				}
 			],
 			"transformations": [
 				{
-					"name": "select1"
+					"name": "selectTitleDirYear"
+				},
+				{
+					"name": "notExistsInsert"
+				},
+				{
+					"name": "existsUpdate"
+				},
+				{
+					"name": "updateIf"
 				}
 			],
 			"scriptLines": [
@@ -45,14 +68,39 @@
 				"     validateSchema: false,",
 				"     isolationLevel: 'READ_UNCOMMITTED',",
 				"     format: 'table') ~> landmovies",
+				"source(output(",
+				"          film_id as integer,",
+				"          title as string,",
+				"          film_year as integer,",
+				"          director as string",
+				"     ),",
+				"     allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     isolationLevel: 'READ_UNCOMMITTED',",
+				"     format: 'table') ~> targetMapFilm",
 				"landmovies select(mapColumn(",
 				"          Title,",
 				"          Director,",
 				"          Year",
 				"     ),",
 				"     skipDuplicateMapInputs: true,",
-				"     skipDuplicateMapOutputs: true) ~> select1",
-				"select1 sink(allowSchemaDrift: true,",
+				"     skipDuplicateMapOutputs: true) ~> selectTitleDirYear",
+				"selectTitleDirYear, targetMapFilm exists(selectTitleDirYear@Title == targetMapFilm@title",
+				"     && Year == film_year,",
+				"     negate:true,",
+				"     broadcast: 'auto')~> notExistsInsert",
+				"selectTitleDirYear, targetMapFilm join(selectTitleDirYear@Title == targetMapFilm@title",
+				"     && selectTitleDirYear@Director == targetMapFilm@director",
+				"     && Year == film_year,",
+				"     joinType:'inner',",
+				"     matchType:'exact',",
+				"     ignoreSpaces: false,",
+				"     broadcast: 'auto')~> existsUpdate",
+				"existsUpdate alterRow(updateIf(notEquals(iifNull(selectTitleDirYear@Title,'NULL',selectTitleDirYear@Title),iifNull(targetMapFilm@title,'NULL',targetMapFilm@title))),",
+				"     updateIf(notEquals(iifNull(selectTitleDirYear@Director,'NULL',selectTitleDirYear@Director),iifNull(targetMapFilm@director,'NULL',targetMapFilm@director))),",
+				"     updateIf(notEquals(iifNull(Year,-1,Year),iifNull(film_year,-1,film_year))\r",
+				")) ~> updateIf",
+				"notExistsInsert sink(allowSchemaDrift: true,",
 				"     validateSchema: false,",
 				"     input(",
 				"          film_id as integer,",
@@ -65,6 +113,7 @@
 				"     updateable:false,",
 				"     upsertable:false,",
 				"     format: 'table',",
+				"     batchSize: 100,",
 				"     skipDuplicateMapInputs: true,",
 				"     skipDuplicateMapOutputs: true,",
 				"     errorHandlingOption: 'stopOnFirstError',",
@@ -72,7 +121,30 @@
 				"          title = Title,",
 				"          film_year = Year,",
 				"          director = Director",
-				"     )) ~> sink1"
+				"     )) ~> insertMapFilm",
+				"updateIf sink(allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     input(",
+				"          film_id as integer,",
+				"          title as string,",
+				"          film_year as integer,",
+				"          director as string",
+				"     ),",
+				"     deletable:false,",
+				"     insertable:false,",
+				"     updateable:true,",
+				"     upsertable:false,",
+				"     keys:['film_id'],",
+				"     format: 'table',",
+				"     skipDuplicateMapInputs: true,",
+				"     skipDuplicateMapOutputs: true,",
+				"     errorHandlingOption: 'stopOnFirstError',",
+				"     mapColumn(",
+				"          film_id,",
+				"          title = selectTitleDirYear@Title,",
+				"          film_year = Year,",
+				"          director = selectTitleDirYear@Director",
+				"     )) ~> updateMapFilm"
 			]
 		}
 	}
