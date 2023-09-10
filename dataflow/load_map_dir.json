@@ -17,6 +17,13 @@
 						"type": "DatasetReference"
 					},
 					"name": "mapfilm"
+				},
+				{
+					"dataset": {
+						"referenceName": "map_director",
+						"type": "DatasetReference"
+					},
+					"name": "mapdirector"
 				}
 			],
 			"sinks": [
@@ -26,6 +33,13 @@
 						"type": "DatasetReference"
 					},
 					"name": "sinkMapDirector"
+				},
+				{
+					"dataset": {
+						"referenceName": "map_director",
+						"type": "DatasetReference"
+					},
+					"name": "insertMapDirector"
 				}
 			],
 			"transformations": [
@@ -37,6 +51,15 @@
 				},
 				{
 					"name": "selectFilmIdDirector"
+				},
+				{
+					"name": "existsUpdate"
+				},
+				{
+					"name": "updateIf"
+				},
+				{
+					"name": "notExistsInsert"
 				}
 			],
 			"scriptLines": [
@@ -68,6 +91,14 @@
 				"     validateSchema: false,",
 				"     isolationLevel: 'READ_UNCOMMITTED',",
 				"     format: 'table') ~> mapfilm",
+				"source(output(",
+				"          director_id as integer,",
+				"          director as string",
+				"     ),",
+				"     allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     isolationLevel: 'READ_UNCOMMITTED',",
+				"     format: 'table') ~> mapdirector",
 				"landingmovies, mapfilm join(landingmovies@Title == mapfilm@title",
 				"     && Year == film_year",
 				"     && landingmovies@Director == mapfilm@director,",
@@ -83,7 +114,36 @@
 				"     ),",
 				"     skipDuplicateMapInputs: true,",
 				"     skipDuplicateMapOutputs: true) ~> selectFilmIdDirector",
-				"distinctDirector sink(allowSchemaDrift: true,",
+				"distinctDirector, mapdirector join(distinctDirector@director == mapdirector@director,",
+				"     joinType:'inner',",
+				"     matchType:'exact',",
+				"     ignoreSpaces: false,",
+				"     broadcast: 'auto')~> existsUpdate",
+				"existsUpdate alterRow(updateIf(notEquals(iifNull(mapdirector@director,'NULL',mapdirector@director),iifNull(distinctDirector@director,'NULL',distinctDirector@director)))) ~> updateIf",
+				"distinctDirector, mapdirector exists(distinctDirector@director == mapdirector@director,",
+				"     negate:false,",
+				"     broadcast: 'auto')~> notExistsInsert",
+				"updateIf sink(allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     input(",
+				"          director_id as integer,",
+				"          director as string",
+				"     ),",
+				"     deletable:false,",
+				"     insertable:false,",
+				"     updateable:true,",
+				"     upsertable:false,",
+				"     keys:['director_id'],",
+				"     format: 'table',",
+				"     batchSize: 100,",
+				"     skipDuplicateMapInputs: true,",
+				"     skipDuplicateMapOutputs: true,",
+				"     errorHandlingOption: 'stopOnFirstError',",
+				"     mapColumn(",
+				"          director = distinctDirector@director,",
+				"          director_id",
+				"     )) ~> sinkMapDirector",
+				"notExistsInsert sink(allowSchemaDrift: true,",
 				"     validateSchema: false,",
 				"     input(",
 				"          director_id as integer,",
@@ -100,7 +160,7 @@
 				"     errorHandlingOption: 'stopOnFirstError',",
 				"     mapColumn(",
 				"          director",
-				"     )) ~> sinkMapDirector"
+				"     )) ~> insertMapDirector"
 			]
 		}
 	}
