@@ -6,7 +6,7 @@
 			"sources": [
 				{
 					"dataset": {
-						"referenceName": "blob_land_movies",
+						"referenceName": "move_db_landing",
 						"type": "DatasetReference"
 					},
 					"name": "source1"
@@ -25,50 +25,51 @@
 						"referenceName": "stg_genre",
 						"type": "DatasetReference"
 					},
-					"name": "sink1"
+					"name": "sinkStgGenre"
 				}
 			],
 			"transformations": [
 				{
-					"name": "derivedColumn1"
+					"name": "splitGenre"
 				},
 				{
-					"name": "flatten1"
+					"name": "flattenGenre"
 				},
 				{
-					"name": "aggregate1"
+					"name": "distinctGenre"
 				},
 				{
-					"name": "select1"
+					"name": "selectGenre"
 				},
 				{
-					"name": "cleanGenre"
+					"name": "trimGenre"
 				},
 				{
-					"name": "join1"
+					"name": "joinMapGenre"
 				},
 				{
-					"name": "select2"
+					"name": "selectGenreGenreId"
 				}
 			],
 			"scriptLines": [
 				"source(output(",
-				"          Rank as string,",
+				"          Rank as integer,",
 				"          Title as string,",
 				"          Genre as string,",
 				"          Description as string,",
 				"          Director as string,",
 				"          Actors as string,",
-				"          Year as string,",
-				"          {Runtime (Minutes)} as string,",
-				"          Rating as string,",
-				"          Votes as string,",
-				"          {Revenue (Millions)} as string,",
-				"          Metascore as string",
+				"          Year as integer,",
+				"          Runtime_Minutes as integer,",
+				"          Rating as double,",
+				"          Votes as integer,",
+				"          Revenue_Millions as double,",
+				"          Metascore as integer",
 				"     ),",
 				"     allowSchemaDrift: true,",
 				"     validateSchema: false,",
-				"     ignoreNoFilesFound: false) ~> source1",
+				"     isolationLevel: 'READ_UNCOMMITTED',",
+				"     format: 'table') ~> source1",
 				"source(output(",
 				"          genre_id as integer,",
 				"          genre as string",
@@ -77,8 +78,8 @@
 				"     validateSchema: false,",
 				"     isolationLevel: 'READ_UNCOMMITTED',",
 				"     format: 'table') ~> mapgenre",
-				"source1 derive(Genre = split(Genre, ',')) ~> derivedColumn1",
-				"derivedColumn1 foldDown(unroll(Genre),",
+				"source1 derive(Genre = split(Genre, ',')) ~> splitGenre",
+				"splitGenre foldDown(unroll(Genre),",
 				"     mapColumn(",
 				"          Rank,",
 				"          Title,",
@@ -94,27 +95,27 @@
 				"          Metascore",
 				"     ),",
 				"     skipDuplicateMapInputs: false,",
-				"     skipDuplicateMapOutputs: false) ~> flatten1",
-				"cleanGenre aggregate(groupBy(Genre),",
-				"     each(match(name=='Rank'), $$ = first($$))) ~> aggregate1",
-				"aggregate1 select(mapColumn(",
+				"     skipDuplicateMapOutputs: false) ~> flattenGenre",
+				"trimGenre aggregate(groupBy(Genre),",
+				"     each(match(name=='Rank'), $$ = first($$))) ~> distinctGenre",
+				"distinctGenre select(mapColumn(",
 				"          Genre",
 				"     ),",
 				"     skipDuplicateMapInputs: true,",
-				"     skipDuplicateMapOutputs: true) ~> select1",
-				"flatten1 derive(Genre = trim(Genre)) ~> cleanGenre",
-				"select1, mapgenre join(select1@Genre == mapgenre@genre,",
+				"     skipDuplicateMapOutputs: true) ~> selectGenre",
+				"flattenGenre derive(Genre = trim(Genre)) ~> trimGenre",
+				"selectGenre, mapgenre join(selectGenre@Genre == mapgenre@genre,",
 				"     joinType:'inner',",
 				"     matchType:'exact',",
 				"     ignoreSpaces: false,",
-				"     broadcast: 'auto')~> join1",
-				"join1 select(mapColumn(",
-				"          Genre = select1@Genre,",
+				"     broadcast: 'auto')~> joinMapGenre",
+				"joinMapGenre select(mapColumn(",
+				"          Genre = selectGenre@Genre,",
 				"          genre_id",
 				"     ),",
 				"     skipDuplicateMapInputs: true,",
-				"     skipDuplicateMapOutputs: true) ~> select2",
-				"select2 sink(allowSchemaDrift: true,",
+				"     skipDuplicateMapOutputs: true) ~> selectGenreGenreId",
+				"selectGenreGenreId sink(allowSchemaDrift: true,",
 				"     validateSchema: false,",
 				"     input(",
 				"          genre_id as integer,",
@@ -131,7 +132,7 @@
 				"     mapColumn(",
 				"          genre_id,",
 				"          genre = Genre",
-				"     )) ~> sink1"
+				"     )) ~> sinkStgGenre"
 			]
 		}
 	}
