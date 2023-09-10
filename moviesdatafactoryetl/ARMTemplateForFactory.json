@@ -348,7 +348,9 @@
 								"parameters": {},
 								"datasetParameters": {
 									"landmovies": {},
-									"sink1": {}
+									"targetMapFilm": {},
+									"insertMapFilm": {},
+									"updateMapFilm": {}
 								}
 							},
 							"staging": {},
@@ -504,8 +506,10 @@
 								"type": "DataFlowReference",
 								"parameters": {},
 								"datasetParameters": {
-									"source1": {},
-									"loadintomapgenre": {}
+									"landingmovies": {},
+									"targetMapGenre": {},
+									"insertMapGenre": {},
+									"updateMapGenre": {}
 								}
 							},
 							"staging": {},
@@ -755,7 +759,9 @@
 								"parameters": {},
 								"datasetParameters": {
 									"landmovies": {},
-									"sink1": {}
+									"targetMapFilm": {},
+									"insertMapFilm": {},
+									"updateMapFilm": {}
 								}
 							},
 							"staging": {},
@@ -830,8 +836,10 @@
 								"type": "DataFlowReference",
 								"parameters": {},
 								"datasetParameters": {
-									"source1": {},
-									"loadintomapgenre": {}
+									"landingmovies": {},
+									"targetMapGenre": {},
+									"insertMapGenre": {},
+									"updateMapGenre": {}
 								}
 							},
 							"staging": {},
@@ -2925,13 +2933,13 @@
 							"name": "flattenActors"
 						},
 						{
-							"name": "aggOnActors"
+							"name": "distinctActor"
 						},
 						{
 							"name": "selectActors"
 						},
 						{
-							"name": "cleanActors"
+							"name": "trimActors"
 						},
 						{
 							"name": "existsUpdate"
@@ -2988,14 +2996,14 @@
 						"     ),",
 						"     skipDuplicateMapInputs: false,",
 						"     skipDuplicateMapOutputs: false) ~> flattenActors",
-						"cleanActors aggregate(groupBy(Actors),",
-						"     each(match(name=='Rank'), $$ = first($$))) ~> aggOnActors",
-						"aggOnActors select(mapColumn(",
+						"trimActors aggregate(groupBy(Actors),",
+						"     each(match(name=='Rank'), $$ = first($$))) ~> distinctActor",
+						"distinctActor select(mapColumn(",
 						"          Actors",
 						"     ),",
 						"     skipDuplicateMapInputs: true,",
 						"     skipDuplicateMapOutputs: true) ~> selectActors",
-						"flattenActors derive(Actors = trim(Actors)) ~> cleanActors",
+						"flattenActors derive(Actors = trim(Actors)) ~> trimActors",
 						"selectActors, targetMapActors join(Actors == actor,",
 						"     joinType:'inner',",
 						"     matchType:'exact',",
@@ -3034,6 +3042,7 @@
 						"     updateable:false,",
 						"     upsertable:false,",
 						"     format: 'table',",
+						"     batchSize: 100,",
 						"     skipDuplicateMapInputs: true,",
 						"     skipDuplicateMapOutputs: true,",
 						"     errorHandlingOption: 'stopOnFirstError',",
@@ -3236,6 +3245,13 @@
 								"type": "DatasetReference"
 							},
 							"name": "landmovies"
+						},
+						{
+							"dataset": {
+								"referenceName": "map_film",
+								"type": "DatasetReference"
+							},
+							"name": "targetMapFilm"
 						}
 					],
 					"sinks": [
@@ -3244,12 +3260,28 @@
 								"referenceName": "map_film",
 								"type": "DatasetReference"
 							},
-							"name": "sink1"
+							"name": "insertMapFilm"
+						},
+						{
+							"dataset": {
+								"referenceName": "map_film",
+								"type": "DatasetReference"
+							},
+							"name": "updateMapFilm"
 						}
 					],
 					"transformations": [
 						{
-							"name": "select1"
+							"name": "selectTitleDirYear"
+						},
+						{
+							"name": "notExistsInsert"
+						},
+						{
+							"name": "existsUpdate"
+						},
+						{
+							"name": "updateIf"
 						}
 					],
 					"scriptLines": [
@@ -3271,14 +3303,38 @@
 						"     validateSchema: false,",
 						"     isolationLevel: 'READ_UNCOMMITTED',",
 						"     format: 'table') ~> landmovies",
+						"source(output(",
+						"          film_id as integer,",
+						"          title as string,",
+						"          film_year as integer,",
+						"          director as string",
+						"     ),",
+						"     allowSchemaDrift: true,",
+						"     validateSchema: false,",
+						"     isolationLevel: 'READ_UNCOMMITTED',",
+						"     format: 'table') ~> targetMapFilm",
 						"landmovies select(mapColumn(",
 						"          Title,",
 						"          Director,",
 						"          Year",
 						"     ),",
 						"     skipDuplicateMapInputs: true,",
-						"     skipDuplicateMapOutputs: true) ~> select1",
-						"select1 sink(allowSchemaDrift: true,",
+						"     skipDuplicateMapOutputs: true) ~> selectTitleDirYear",
+						"selectTitleDirYear, targetMapFilm exists(selectTitleDirYear@Title == targetMapFilm@title",
+						"     && Year == film_year,",
+						"     negate:true,",
+						"     broadcast: 'auto')~> notExistsInsert",
+						"selectTitleDirYear, targetMapFilm join(selectTitleDirYear@Title == targetMapFilm@title",
+						"     && selectTitleDirYear@Director == targetMapFilm@director",
+						"     && Year == film_year,",
+						"     joinType:'inner',",
+						"     matchType:'exact',",
+						"     ignoreSpaces: false,",
+						"     broadcast: 'auto')~> existsUpdate",
+						"existsUpdate alterRow(updateIf(notEquals(iifNull(selectTitleDirYear@Title,'NULL',selectTitleDirYear@Title),iifNull(targetMapFilm@title,'NULL',targetMapFilm@title))),",
+						"     updateIf(notEquals(iifNull(selectTitleDirYear@Director,'NULL',selectTitleDirYear@Director),iifNull(targetMapFilm@director,'NULL',targetMapFilm@director))),",
+						"     updateIf(notEquals(iifNull(Year,-1,Year),iifNull(film_year,-1,film_year)))) ~> updateIf",
+						"notExistsInsert sink(allowSchemaDrift: true,",
 						"     validateSchema: false,",
 						"     input(",
 						"          film_id as integer,",
@@ -3291,6 +3347,7 @@
 						"     updateable:false,",
 						"     upsertable:false,",
 						"     format: 'table',",
+						"     batchSize: 100,",
 						"     skipDuplicateMapInputs: true,",
 						"     skipDuplicateMapOutputs: true,",
 						"     errorHandlingOption: 'stopOnFirstError',",
@@ -3298,7 +3355,30 @@
 						"          title = Title,",
 						"          film_year = Year,",
 						"          director = Director",
-						"     )) ~> sink1"
+						"     )) ~> insertMapFilm",
+						"updateIf sink(allowSchemaDrift: true,",
+						"     validateSchema: false,",
+						"     input(",
+						"          film_id as integer,",
+						"          title as string,",
+						"          film_year as integer,",
+						"          director as string",
+						"     ),",
+						"     deletable:false,",
+						"     insertable:false,",
+						"     updateable:true,",
+						"     upsertable:false,",
+						"     keys:['film_id'],",
+						"     format: 'table',",
+						"     skipDuplicateMapInputs: true,",
+						"     skipDuplicateMapOutputs: true,",
+						"     errorHandlingOption: 'stopOnFirstError',",
+						"     mapColumn(",
+						"          film_id,",
+						"          title = selectTitleDirYear@Title,",
+						"          film_year = Year,",
+						"          director = selectTitleDirYear@Director",
+						"     )) ~> updateMapFilm"
 					]
 				}
 			},
@@ -3317,10 +3397,17 @@
 					"sources": [
 						{
 							"dataset": {
-								"referenceName": "blob_land_movies",
+								"referenceName": "move_db_landing",
 								"type": "DatasetReference"
 							},
-							"name": "source1"
+							"name": "landingmovies"
+						},
+						{
+							"dataset": {
+								"referenceName": "map_genre",
+								"type": "DatasetReference"
+							},
+							"name": "targetMapGenre"
 						}
 					],
 					"sinks": [
@@ -3329,46 +3416,71 @@
 								"referenceName": "map_genre",
 								"type": "DatasetReference"
 							},
-							"name": "loadintomapgenre"
+							"name": "insertMapGenre"
+						},
+						{
+							"dataset": {
+								"referenceName": "map_genre",
+								"type": "DatasetReference"
+							},
+							"name": "updateMapGenre"
 						}
 					],
 					"transformations": [
 						{
-							"name": "derivedColumn1"
+							"name": "splitGenre"
 						},
 						{
-							"name": "flatten1"
+							"name": "flattenGenre"
 						},
 						{
-							"name": "aggregate1"
+							"name": "distinctGenre"
 						},
 						{
-							"name": "select1"
+							"name": "selectGenre"
 						},
 						{
-							"name": "cleanGenre"
+							"name": "trimGenre"
+						},
+						{
+							"name": "notExistsInsert"
+						},
+						{
+							"name": "existsUpdate"
+						},
+						{
+							"name": "updateIf"
 						}
 					],
 					"scriptLines": [
 						"source(output(",
-						"          Rank as string,",
+						"          Rank as integer,",
 						"          Title as string,",
 						"          Genre as string,",
 						"          Description as string,",
 						"          Director as string,",
 						"          Actors as string,",
-						"          Year as string,",
-						"          {Runtime (Minutes)} as string,",
-						"          Rating as string,",
-						"          Votes as string,",
-						"          {Revenue (Millions)} as string,",
-						"          Metascore as string",
+						"          Year as integer,",
+						"          Runtime_Minutes as integer,",
+						"          Rating as double,",
+						"          Votes as integer,",
+						"          Revenue_Millions as double,",
+						"          Metascore as integer",
 						"     ),",
 						"     allowSchemaDrift: true,",
 						"     validateSchema: false,",
-						"     ignoreNoFilesFound: false) ~> source1",
-						"source1 derive(Genre = split(Genre, ',')) ~> derivedColumn1",
-						"derivedColumn1 foldDown(unroll(Genre),",
+						"     isolationLevel: 'READ_UNCOMMITTED',",
+						"     format: 'table') ~> landingmovies",
+						"source(output(",
+						"          genre_id as integer,",
+						"          genre as string",
+						"     ),",
+						"     allowSchemaDrift: true,",
+						"     validateSchema: false,",
+						"     isolationLevel: 'READ_UNCOMMITTED',",
+						"     format: 'table') ~> targetMapGenre",
+						"landingmovies derive(Genre = split(Genre, ',')) ~> splitGenre",
+						"splitGenre foldDown(unroll(Genre),",
 						"     mapColumn(",
 						"          Rank,",
 						"          Title,",
@@ -3377,23 +3489,32 @@
 						"          Director,",
 						"          Actors,",
 						"          Year,",
-						"          {Runtime (Minutes)},",
+						"          {Runtime (Minutes)} = Runtime_Minutes,",
 						"          Rating,",
 						"          Votes,",
-						"          {Revenue (Millions)},",
+						"          {Revenue (Millions)} = Revenue_Millions,",
 						"          Metascore",
 						"     ),",
 						"     skipDuplicateMapInputs: false,",
-						"     skipDuplicateMapOutputs: false) ~> flatten1",
-						"cleanGenre aggregate(groupBy(Genre),",
-						"     each(match(name=='Rank'), $$ = first($$))) ~> aggregate1",
-						"aggregate1 select(mapColumn(",
+						"     skipDuplicateMapOutputs: false) ~> flattenGenre",
+						"trimGenre aggregate(groupBy(Genre),",
+						"     each(match(name=='Rank'), $$ = first($$))) ~> distinctGenre",
+						"distinctGenre select(mapColumn(",
 						"          Genre",
 						"     ),",
 						"     skipDuplicateMapInputs: true,",
-						"     skipDuplicateMapOutputs: true) ~> select1",
-						"flatten1 derive(Genre = trim(Genre)) ~> cleanGenre",
-						"select1 sink(allowSchemaDrift: true,",
+						"     skipDuplicateMapOutputs: true) ~> selectGenre",
+						"flattenGenre derive(Genre = trim(Genre)) ~> trimGenre",
+						"selectGenre, targetMapGenre exists(selectGenre@Genre == targetMapGenre@genre,",
+						"     negate:true,",
+						"     broadcast: 'auto')~> notExistsInsert",
+						"selectGenre, targetMapGenre join(selectGenre@Genre == targetMapGenre@genre,",
+						"     joinType:'inner',",
+						"     matchType:'exact',",
+						"     ignoreSpaces: false,",
+						"     broadcast: 'auto')~> existsUpdate",
+						"existsUpdate alterRow(updateIf(notEquals(iifNull(selectGenre@Genre,'NULL',selectGenre@Genre),iifNull(targetMapGenre@genre,'NULL',targetMapGenre@genre)))) ~> updateIf",
+						"notExistsInsert sink(allowSchemaDrift: true,",
 						"     validateSchema: false,",
 						"     input(",
 						"          genre_id as integer,",
@@ -3404,17 +3525,37 @@
 						"     updateable:false,",
 						"     upsertable:false,",
 						"     format: 'table',",
+						"     batchSize: 100,",
 						"     skipDuplicateMapInputs: true,",
 						"     skipDuplicateMapOutputs: true,",
 						"     errorHandlingOption: 'stopOnFirstError',",
 						"     mapColumn(",
 						"          genre = Genre",
-						"     )) ~> loadintomapgenre"
+						"     )) ~> insertMapGenre",
+						"updateIf sink(allowSchemaDrift: true,",
+						"     validateSchema: false,",
+						"     input(",
+						"          genre_id as integer,",
+						"          genre as string",
+						"     ),",
+						"     deletable:false,",
+						"     insertable:false,",
+						"     updateable:true,",
+						"     upsertable:false,",
+						"     keys:['genre_id'],",
+						"     format: 'table',",
+						"     skipDuplicateMapInputs: true,",
+						"     skipDuplicateMapOutputs: true,",
+						"     errorHandlingOption: 'stopOnFirstError',",
+						"     mapColumn(",
+						"          genre_id,",
+						"          genre = selectGenre@Genre",
+						"     )) ~> updateMapGenre"
 					]
 				}
 			},
 			"dependsOn": [
-				"[concat(variables('factoryId'), '/datasets/blob_land_movies')]",
+				"[concat(variables('factoryId'), '/datasets/move_db_landing')]",
 				"[concat(variables('factoryId'), '/datasets/map_genre')]"
 			]
 		},

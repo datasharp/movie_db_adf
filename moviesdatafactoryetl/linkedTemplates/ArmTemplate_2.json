@@ -329,7 +329,9 @@
 								"parameters": {},
 								"datasetParameters": {
 									"landmovies": {},
-									"sink1": {}
+									"targetMapFilm": {},
+									"insertMapFilm": {},
+									"updateMapFilm": {}
 								}
 							},
 							"staging": {},
@@ -485,8 +487,10 @@
 								"type": "DataFlowReference",
 								"parameters": {},
 								"datasetParameters": {
-									"source1": {},
-									"loadintomapgenre": {}
+									"landingmovies": {},
+									"targetMapGenre": {},
+									"insertMapGenre": {},
+									"updateMapGenre": {}
 								}
 							},
 							"staging": {},
@@ -725,7 +729,9 @@
 								"parameters": {},
 								"datasetParameters": {
 									"landmovies": {},
-									"sink1": {}
+									"targetMapFilm": {},
+									"insertMapFilm": {},
+									"updateMapFilm": {}
 								}
 							},
 							"staging": {},
@@ -800,8 +806,10 @@
 								"type": "DataFlowReference",
 								"parameters": {},
 								"datasetParameters": {
-									"source1": {},
-									"loadintomapgenre": {}
+									"landingmovies": {},
+									"targetMapGenre": {},
+									"insertMapGenre": {},
+									"updateMapGenre": {}
 								}
 							},
 							"staging": {},
