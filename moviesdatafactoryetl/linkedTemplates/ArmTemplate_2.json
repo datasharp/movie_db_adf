@@ -639,7 +639,9 @@
 								"datasetParameters": {
 									"landingmovies": {},
 									"mapfilm": {},
-									"sinkMapDirector": {}
+									"mapdirector": {},
+									"sinkMapDirector": {},
+									"insertMapDirector": {}
 								}
 							},
 							"staging": {},
@@ -835,7 +837,9 @@
 								"datasetParameters": {
 									"landingmovies": {},
 									"mapfilm": {},
-									"sinkMapDirector": {}
+									"mapdirector": {},
+									"sinkMapDirector": {},
+									"insertMapDirector": {}
 								}
 							},
 							"staging": {},
@@ -1108,6 +1112,54 @@
 									"targetMapActors": {},
 									"loadintomapactors": {},
 									"insertMapActor": {}
+								}
+							},
+							"staging": {},
+							"compute": {
+								"coreCount": 8,
+								"computeType": "General"
+							},
+							"traceLevel": "Fine"
+						}
+					}
+				],
+				"policy": {
+					"elapsedTimeMetric": {},
+					"cancelAfter": {}
+				},
+				"annotations": []
+			},
+			"dependsOn": []
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/pipeline3')]",
+			"type": "Microsoft.DataFactory/factories/pipelines",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"activities": [
+					{
+						"name": "load_map_dir",
+						"type": "ExecuteDataFlow",
+						"dependsOn": [],
+						"policy": {
+							"timeout": "0.12:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"dataflow": {
+								"referenceName": "load_map_dir",
+								"type": "DataFlowReference",
+								"parameters": {},
+								"datasetParameters": {
+									"landingmovies": {},
+									"mapfilm": {},
+									"mapdirector": {},
+									"sinkMapDirector": {},
+									"insertMapDirector": {}
 								}
 							},
 							"staging": {},
