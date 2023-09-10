@@ -43,13 +43,13 @@
 					"name": "flattenActors"
 				},
 				{
-					"name": "aggOnActors"
+					"name": "distinctActor"
 				},
 				{
 					"name": "selectActors"
 				},
 				{
-					"name": "cleanActors"
+					"name": "trimActors"
 				},
 				{
 					"name": "existsUpdate"
@@ -106,14 +106,14 @@
 				"     ),",
 				"     skipDuplicateMapInputs: false,",
 				"     skipDuplicateMapOutputs: false) ~> flattenActors",
-				"cleanActors aggregate(groupBy(Actors),",
-				"     each(match(name=='Rank'), $$ = first($$))) ~> aggOnActors",
-				"aggOnActors select(mapColumn(",
+				"trimActors aggregate(groupBy(Actors),",
+				"     each(match(name=='Rank'), $$ = first($$))) ~> distinctActor",
+				"distinctActor select(mapColumn(",
 				"          Actors",
 				"     ),",
 				"     skipDuplicateMapInputs: true,",
 				"     skipDuplicateMapOutputs: true) ~> selectActors",
-				"flattenActors derive(Actors = trim(Actors)) ~> cleanActors",
+				"flattenActors derive(Actors = trim(Actors)) ~> trimActors",
 				"selectActors, targetMapActors join(Actors == actor,",
 				"     joinType:'inner',",
 				"     matchType:'exact',",
@@ -152,6 +152,7 @@
 				"     updateable:false,",
 				"     upsertable:false,",
 				"     format: 'table',",
+				"     batchSize: 100,",
 				"     skipDuplicateMapInputs: true,",
 				"     skipDuplicateMapOutputs: true,",
 				"     errorHandlingOption: 'stopOnFirstError',",
