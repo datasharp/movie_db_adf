@@ -86,7 +86,7 @@
 				"     skipDuplicateMapOutputs: true) ~> selectYear",
 				"selectYear aggregate(groupBy(year),",
 				"     each(match(name!='year'), $$ = first($$))) ~> distinctYear",
-				"distinctYear, targetMapYear exists(distinctYear@year == year_id,",
+				"distinctYear, targetMapYear exists(distinctYear@year == targetMapYear@year,",
 				"     negate:true,",
 				"     broadcast: 'auto')~> notExistsInsert",
 				"distinctYear, targetMapYear join(distinctYear@year == targetMapYear@year,",
