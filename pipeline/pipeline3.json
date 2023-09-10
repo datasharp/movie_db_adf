@@ -3,7 +3,7 @@
 	"properties": {
 		"activities": [
 			{
-				"name": "load_map_dir",
+				"name": "load_map_year",
 				"type": "ExecuteDataFlow",
 				"dependsOn": [],
 				"policy": {
@@ -16,7 +16,7 @@
 				"userProperties": [],
 				"typeProperties": {
 					"dataflow": {
-						"referenceName": "load_map_dir",
+						"referenceName": "load_map_year",
 						"type": "DataFlowReference"
 					},
 					"compute": {
