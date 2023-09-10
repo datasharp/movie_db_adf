@@ -13,13 +13,6 @@
 				},
 				{
 					"dataset": {
-						"referenceName": "map_film",
-						"type": "DatasetReference"
-					},
-					"name": "mapfilm"
-				},
-				{
-					"dataset": {
 						"referenceName": "map_director",
 						"type": "DatasetReference"
 					},
@@ -44,13 +37,7 @@
 			],
 			"transformations": [
 				{
-					"name": "joinMapFilm"
-				},
-				{
 					"name": "distinctDirector"
-				},
-				{
-					"name": "selectFilmIdDirector"
 				},
 				{
 					"name": "existsUpdate"
@@ -82,16 +69,6 @@
 				"     isolationLevel: 'READ_UNCOMMITTED',",
 				"     format: 'table') ~> landingmovies",
 				"source(output(",
-				"          film_id as integer,",
-				"          title as string,",
-				"          film_year as integer,",
-				"          director as string",
-				"     ),",
-				"     allowSchemaDrift: true,",
-				"     validateSchema: false,",
-				"     isolationLevel: 'READ_UNCOMMITTED',",
-				"     format: 'table') ~> mapfilm",
-				"source(output(",
 				"          director_id as integer,",
 				"          director as string",
 				"     ),",
@@ -99,28 +76,15 @@
 				"     validateSchema: false,",
 				"     isolationLevel: 'READ_UNCOMMITTED',",
 				"     format: 'table') ~> mapdirector",
-				"landingmovies, mapfilm join(landingmovies@Title == mapfilm@title",
-				"     && Year == film_year",
-				"     && landingmovies@Director == mapfilm@director,",
-				"     joinType:'inner',",
-				"     matchType:'exact',",
-				"     ignoreSpaces: false,",
-				"     broadcast: 'auto')~> joinMapFilm",
-				"selectFilmIdDirector aggregate(groupBy(director),",
-				"     each(match(name!='director'), $$ = first($$))) ~> distinctDirector",
-				"joinMapFilm select(mapColumn(",
-				"          film_id,",
-				"          director = landingmovies@Director",
-				"     ),",
-				"     skipDuplicateMapInputs: true,",
-				"     skipDuplicateMapOutputs: true) ~> selectFilmIdDirector",
-				"distinctDirector, mapdirector join(distinctDirector@director == mapdirector@director,",
+				"landingmovies aggregate(groupBy(Director),",
+				"     each(match(name!='Director'), $$ = first($$))) ~> distinctDirector",
+				"distinctDirector, mapdirector join(distinctDirector@Director == mapdirector@director,",
 				"     joinType:'inner',",
 				"     matchType:'exact',",
 				"     ignoreSpaces: false,",
 				"     broadcast: 'auto')~> existsUpdate",
-				"existsUpdate alterRow(updateIf(notEquals(iifNull(mapdirector@director,'NULL',mapdirector@director),iifNull(distinctDirector@director,'NULL',distinctDirector@director)))) ~> updateIf",
-				"distinctDirector, mapdirector exists(distinctDirector@director == mapdirector@director,",
+				"existsUpdate alterRow(updateIf(notEquals(iifNull(mapdirector@director,'NULL',mapdirector@director),iifNull(distinctDirector@Director,'NULL',distinctDirector@Director)))) ~> updateIf",
+				"distinctDirector, mapdirector exists(distinctDirector@Director == mapdirector@director,",
 				"     negate:true,",
 				"     broadcast: 'auto')~> notExistsInsert",
 				"updateIf sink(allowSchemaDrift: true,",
@@ -140,7 +104,7 @@
 				"     skipDuplicateMapOutputs: true,",
 				"     errorHandlingOption: 'stopOnFirstError',",
 				"     mapColumn(",
-				"          director = distinctDirector@director,",
+				"          director = distinctDirector@Director,",
 				"          director_id",
 				"     )) ~> sinkMapDirector",
 				"notExistsInsert sink(allowSchemaDrift: true,",
@@ -159,7 +123,7 @@
 				"     skipDuplicateMapOutputs: true,",
 				"     errorHandlingOption: 'stopOnFirstError',",
 				"     mapColumn(",
-				"          director",
+				"          director = Director",
 				"     )) ~> insertMapDirector"
 			]
 		}
