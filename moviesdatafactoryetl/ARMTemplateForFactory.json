@@ -656,9 +656,9 @@
 								"type": "DataFlowReference",
 								"parameters": {},
 								"datasetParameters": {
-									"stgfilm": {},
+									"landingmovies": {},
 									"mapfilm": {},
-									"sink1": {}
+									"sinkMapDirector": {}
 								}
 							},
 							"staging": {},
@@ -837,6 +837,44 @@
 							},
 							"traceLevel": "Fine"
 						}
+					},
+					{
+						"name": "load_map_dir",
+						"type": "ExecuteDataFlow",
+						"dependsOn": [
+							{
+								"activity": "load_map_film",
+								"dependencyConditions": [
+									"Completed"
+								]
+							}
+						],
+						"policy": {
+							"timeout": "0.12:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"dataflow": {
+								"referenceName": "load_map_dir",
+								"type": "DataFlowReference",
+								"parameters": {},
+								"datasetParameters": {
+									"landingmovies": {},
+									"mapfilm": {},
+									"sinkMapDirector": {}
+								}
+							},
+							"staging": {},
+							"compute": {
+								"coreCount": 8,
+								"computeType": "General"
+							},
+							"traceLevel": "Fine"
+						}
 					}
 				],
 				"policy": {
@@ -848,7 +886,8 @@
 			"dependsOn": [
 				"[concat(variables('factoryId'), '/dataflows/load_map_film')]",
 				"[concat(variables('factoryId'), '/dataflows/load_map_actor')]",
-				"[concat(variables('factoryId'), '/dataflows/load_map_genre')]"
+				"[concat(variables('factoryId'), '/dataflows/load_map_genre')]",
+				"[concat(variables('factoryId'), '/dataflows/load_map_dir')]"
 			]
 		},
 		{
@@ -2964,10 +3003,10 @@
 					"sources": [
 						{
 							"dataset": {
-								"referenceName": "stg_film",
+								"referenceName": "move_db_landing",
 								"type": "DatasetReference"
 							},
-							"name": "stgfilm"
+							"name": "landingmovies"
 						},
 						{
 							"dataset": {
@@ -2983,37 +3022,39 @@
 								"referenceName": "map_director",
 								"type": "DatasetReference"
 							},
-							"name": "sink1"
+							"name": "sinkMapDirector"
 						}
 					],
 					"transformations": [
 						{
-							"name": "join1"
+							"name": "joinMapFilm"
 						},
 						{
-							"name": "distinctDir"
+							"name": "distinctDirector"
 						},
 						{
-							"name": "select2"
+							"name": "selectFilmIdDirector"
 						}
 					],
 					"scriptLines": [
 						"source(output(",
-						"          film_id as integer,",
-						"          title as string,",
-						"          description as string,",
-						"          director as string,",
-						"          film_year as integer,",
-						"          runtime_minutes as integer,",
-						"          rating as double,",
-						"          votes as integer,",
-						"          revenue_millions as double,",
-						"          metascore as integer",
+						"          Rank as integer,",
+						"          Title as string,",
+						"          Genre as string,",
+						"          Description as string,",
+						"          Director as string,",
+						"          Actors as string,",
+						"          Year as integer,",
+						"          Runtime_Minutes as integer,",
+						"          Rating as double,",
+						"          Votes as integer,",
+						"          Revenue_Millions as double,",
+						"          Metascore as integer",
 						"     ),",
 						"     allowSchemaDrift: true,",
 						"     validateSchema: false,",
 						"     isolationLevel: 'READ_UNCOMMITTED',",
-						"     format: 'table') ~> stgfilm",
+						"     format: 'table') ~> landingmovies",
 						"source(output(",
 						"          film_id as integer,",
 						"          title as string,",
@@ -3024,20 +3065,22 @@
 						"     validateSchema: false,",
 						"     isolationLevel: 'READ_UNCOMMITTED',",
 						"     format: 'table') ~> mapfilm",
-						"stgfilm, mapfilm join(stgfilm@film_id == mapfilm@film_id,",
+						"landingmovies, mapfilm join(landingmovies@Title == mapfilm@title",
+						"     && Year == film_year",
+						"     && landingmovies@Director == mapfilm@director,",
 						"     joinType:'inner',",
 						"     matchType:'exact',",
 						"     ignoreSpaces: false,",
-						"     broadcast: 'auto')~> join1",
-						"select2 aggregate(groupBy(director),",
-						"     each(match(name!='director'), $$ = first($$))) ~> distinctDir",
-						"join1 select(mapColumn(",
-						"          film_id = stgfilm@film_id,",
-						"          director = stgfilm@director",
+						"     broadcast: 'auto')~> joinMapFilm",
+						"selectFilmIdDirector aggregate(groupBy(director),",
+						"     each(match(name!='director'), $$ = first($$))) ~> distinctDirector",
+						"joinMapFilm select(mapColumn(",
+						"          film_id,",
+						"          director = landingmovies@Director",
 						"     ),",
 						"     skipDuplicateMapInputs: true,",
-						"     skipDuplicateMapOutputs: true) ~> select2",
-						"distinctDir sink(allowSchemaDrift: true,",
+						"     skipDuplicateMapOutputs: true) ~> selectFilmIdDirector",
+						"distinctDirector sink(allowSchemaDrift: true,",
 						"     validateSchema: false,",
 						"     input(",
 						"          director_id as integer,",
@@ -3048,17 +3091,18 @@
 						"     updateable:false,",
 						"     upsertable:false,",
 						"     format: 'table',",
+						"     batchSize: 100,",
 						"     skipDuplicateMapInputs: true,",
 						"     skipDuplicateMapOutputs: true,",
 						"     errorHandlingOption: 'stopOnFirstError',",
 						"     mapColumn(",
 						"          director",
-						"     )) ~> sink1"
+						"     )) ~> sinkMapDirector"
 					]
 				}
 			},
 			"dependsOn": [
-				"[concat(variables('factoryId'), '/datasets/stg_film')]",
+				"[concat(variables('factoryId'), '/datasets/move_db_landing')]",
 				"[concat(variables('factoryId'), '/datasets/map_film')]",
 				"[concat(variables('factoryId'), '/datasets/map_director')]"
 			]
