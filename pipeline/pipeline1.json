@@ -3,7 +3,7 @@
 	"properties": {
 		"activities": [
 			{
-				"name": "load_stg_actor_film_assoc",
+				"name": "load_dim_actor",
 				"type": "ExecuteDataFlow",
 				"dependsOn": [],
 				"policy": {
@@ -16,7 +16,7 @@
 				"userProperties": [],
 				"typeProperties": {
 					"dataflow": {
-						"referenceName": "load_stg_actor_film_assoc",
+						"referenceName": "load_dim_actor",
 						"type": "DataFlowReference"
 					},
 					"compute": {
