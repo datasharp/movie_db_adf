@@ -10,6 +10,13 @@
 						"type": "DatasetReference"
 					},
 					"name": "stgactor"
+				},
+				{
+					"dataset": {
+						"referenceName": "dim_actor",
+						"type": "DatasetReference"
+					},
+					"name": "targetDimActor"
 				}
 			],
 			"sinks": [
@@ -18,10 +25,27 @@
 						"referenceName": "dim_actor",
 						"type": "DatasetReference"
 					},
-					"name": "sink1"
+					"name": "updateDimActor"
+				},
+				{
+					"dataset": {
+						"referenceName": "dim_actor",
+						"type": "DatasetReference"
+					},
+					"name": "insertDimActor"
 				}
 			],
-			"transformations": [],
+			"transformations": [
+				{
+					"name": "existsUpdate"
+				},
+				{
+					"name": "notExistsInsert"
+				},
+				{
+					"name": "updateif"
+				}
+			],
 			"scriptLines": [
 				"source(output(",
 				"          actor_id as integer,",
@@ -31,7 +55,24 @@
 				"     validateSchema: false,",
 				"     isolationLevel: 'READ_UNCOMMITTED',",
 				"     format: 'table') ~> stgactor",
-				"stgactor sink(allowSchemaDrift: true,",
+				"source(output(",
+				"          actor_id as integer,",
+				"          actor as string",
+				"     ),",
+				"     allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     isolationLevel: 'READ_UNCOMMITTED',",
+				"     format: 'table') ~> targetDimActor",
+				"stgactor, targetDimActor join(stgactor@actor_id == targetDimActor@actor_id,",
+				"     joinType:'inner',",
+				"     matchType:'exact',",
+				"     ignoreSpaces: false,",
+				"     broadcast: 'auto')~> existsUpdate",
+				"stgactor, targetDimActor exists(stgactor@actor == targetDimActor@actor,",
+				"     negate:true,",
+				"     broadcast: 'auto')~> notExistsInsert",
+				"existsUpdate alterRow(updateIf(notEquals(iifNull(stgactor@actor,'NULL',stgactor@actor),iifNull(targetDimActor@actor,'NULL',targetDimActor@actor)))) ~> updateif",
+				"updateif sink(allowSchemaDrift: true,",
 				"     validateSchema: false,",
 				"     input(",
 				"          actor_id as integer,",
@@ -48,7 +89,26 @@
 				"     mapColumn(",
 				"          actor_id,",
 				"          actor",
-				"     )) ~> sink1"
+				"     )) ~> updateDimActor",
+				"notExistsInsert sink(allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     input(",
+				"          actor_id as integer,",
+				"          actor as string",
+				"     ),",
+				"     deletable:false,",
+				"     insertable:true,",
+				"     updateable:false,",
+				"     upsertable:false,",
+				"     format: 'table',",
+				"     batchSize: 100,",
+				"     skipDuplicateMapInputs: true,",
+				"     skipDuplicateMapOutputs: true,",
+				"     errorHandlingOption: 'stopOnFirstError',",
+				"     mapColumn(",
+				"          actor_id,",
+				"          actor",
+				"     )) ~> insertDimActor"
 			]
 		}
 	}
