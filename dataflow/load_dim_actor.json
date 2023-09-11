@@ -89,7 +89,7 @@
 				"     skipDuplicateMapOutputs: true,",
 				"     errorHandlingOption: 'stopOnFirstError',",
 				"     mapColumn(",
-				"          actor_id = targetDimActor@actor_id,",
+				"          actor_id = stgactor@actor_id,",
 				"          actor = stgactor@actor",
 				"     )) ~> updateDimActor",
 				"notExistsInsert sink(allowSchemaDrift: true,",
