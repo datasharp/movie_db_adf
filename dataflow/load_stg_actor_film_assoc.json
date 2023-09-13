@@ -72,7 +72,7 @@
 					"name": "actorsFilmId"
 				},
 				{
-					"name": "select4"
+					"name": "filmIDActorID"
 				},
 				{
 					"name": "insertwherenotexists"
@@ -167,7 +167,7 @@
 				"     skipDuplicateMapInputs: false,",
 				"     skipDuplicateMapOutputs: false) ~> selectActorsTitleYearDIr",
 				"actorsFilmId, mapactor join(Actors == actor,",
-				"     joinType:'left',",
+				"     joinType:'inner',",
 				"     matchType:'exact',",
 				"     ignoreSpaces: false,",
 				"     broadcast: 'off')~> joinMapActor",
@@ -182,13 +182,13 @@
 				"          actor_id",
 				"     ),",
 				"     skipDuplicateMapInputs: true,",
-				"     skipDuplicateMapOutputs: true) ~> select4",
-				"select4, select5 exists(select4@film_id == select5@film_id",
-				"     && select4@actor_id == select5@actor_id,",
+				"     skipDuplicateMapOutputs: true) ~> filmIDActorID",
+				"filmIDActorID, select5 exists(filmIDActorID@film_id == select5@film_id",
+				"     && filmIDActorID@actor_id == select5@actor_id,",
 				"     negate:true,",
 				"     broadcast: 'auto')~> insertwherenotexists",
-				"select5, select4 exists(select4@film_id == select5@film_id",
-				"     && select4@actor_id == select5@actor_id,",
+				"select5, filmIDActorID exists(filmIDActorID@film_id == select5@film_id",
+				"     && filmIDActorID@actor_id == select5@actor_id,",
 				"     negate:true,",
 				"     broadcast: 'auto')~> deletenotexists",
 				"deletenotexists alterRow(deleteIf(true())) ~> delete",
