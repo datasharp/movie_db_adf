@@ -99,6 +99,13 @@
 								"type": "DatasetReference"
 							},
 							"name": "stgactor"
+						},
+						{
+							"dataset": {
+								"referenceName": "dim_actor",
+								"type": "DatasetReference"
+							},
+							"name": "targetDimActor"
 						}
 					],
 					"sinks": [
@@ -107,10 +114,27 @@
 								"referenceName": "dim_actor",
 								"type": "DatasetReference"
 							},
-							"name": "sink1"
+							"name": "updateDimActor"
+						},
+						{
+							"dataset": {
+								"referenceName": "dim_actor",
+								"type": "DatasetReference"
+							},
+							"name": "insertDimActor"
 						}
 					],
-					"transformations": [],
+					"transformations": [
+						{
+							"name": "existsUpdate"
+						},
+						{
+							"name": "notExistsInsert"
+						},
+						{
+							"name": "updateif"
+						}
+					],
 					"scriptLines": [
 						"source(output(",
 						"          actor_id as integer,",
@@ -120,7 +144,44 @@
 						"     validateSchema: false,",
 						"     isolationLevel: 'READ_UNCOMMITTED',",
 						"     format: 'table') ~> stgactor",
-						"stgactor sink(allowSchemaDrift: true,",
+						"source(output(",
+						"          actor_id as integer,",
+						"          actor as string",
+						"     ),",
+						"     allowSchemaDrift: true,",
+						"     validateSchema: false,",
+						"     isolationLevel: 'READ_UNCOMMITTED',",
+						"     format: 'table') ~> targetDimActor",
+						"stgactor, targetDimActor join(stgactor@actor_id == targetDimActor@actor_id,",
+						"     joinType:'inner',",
+						"     matchType:'exact',",
+						"     ignoreSpaces: false,",
+						"     broadcast: 'auto')~> existsUpdate",
+						"stgactor, targetDimActor exists(stgactor@actor == targetDimActor@actor,",
+						"     negate:true,",
+						"     broadcast: 'auto')~> notExistsInsert",
+						"existsUpdate alterRow(updateIf(notEquals(iifNull(stgactor@actor,'NULL',stgactor@actor),iifNull(targetDimActor@actor,'NULL',targetDimActor@actor)))) ~> updateif",
+						"updateif sink(allowSchemaDrift: true,",
+						"     validateSchema: false,",
+						"     input(",
+						"          actor_id as integer,",
+						"          actor as string",
+						"     ),",
+						"     deletable:false,",
+						"     insertable:false,",
+						"     updateable:true,",
+						"     upsertable:false,",
+						"     keys:['actor_id'],",
+						"     format: 'table',",
+						"     batchSize: 100,",
+						"     skipDuplicateMapInputs: true,",
+						"     skipDuplicateMapOutputs: true,",
+						"     errorHandlingOption: 'stopOnFirstError',",
+						"     mapColumn(",
+						"          actor_id = stgactor@actor_id,",
+						"          actor = stgactor@actor",
+						"     )) ~> updateDimActor",
+						"notExistsInsert sink(allowSchemaDrift: true,",
 						"     validateSchema: false,",
 						"     input(",
 						"          actor_id as integer,",
@@ -131,13 +192,14 @@
 						"     updateable:false,",
 						"     upsertable:false,",
 						"     format: 'table',",
+						"     batchSize: 100,",
 						"     skipDuplicateMapInputs: true,",
 						"     skipDuplicateMapOutputs: true,",
 						"     errorHandlingOption: 'stopOnFirstError',",
 						"     mapColumn(",
 						"          actor_id,",
 						"          actor",
-						"     )) ~> sink1"
+						"     )) ~> insertDimActor"
 					]
 				}
 			},
@@ -367,6 +429,13 @@
 								"type": "DatasetReference"
 							},
 							"name": "stgactorfilmassoc"
+						},
+						{
+							"dataset": {
+								"referenceName": "dim_actor_movie_assoc",
+								"type": "DatasetReference"
+							},
+							"name": "dimactorfilmassoc"
 						}
 					],
 					"sinks": [
@@ -375,10 +444,20 @@
 								"referenceName": "dim_actor_movie_assoc",
 								"type": "DatasetReference"
 							},
-							"name": "sink1"
+							"name": "sinkDimActorFilmAssoc"
 						}
 					],
-					"transformations": [],
+					"transformations": [
+						{
+							"name": "notExistsInsert"
+						},
+						{
+							"name": "existsUpdate"
+						},
+						{
+							"name": "alterRow1"
+						}
+					],
 					"scriptLines": [
 						"source(output(",
 						"          stg_actor_film_id as integer,",
@@ -389,7 +468,25 @@
 						"     validateSchema: false,",
 						"     isolationLevel: 'READ_UNCOMMITTED',",
 						"     format: 'table') ~> stgactorfilmassoc",
-						"stgactorfilmassoc sink(allowSchemaDrift: true,",
+						"source(output(",
+						"          dim_actor_movie_assoc_id as integer,",
+						"          actor_id as integer,",
+						"          film_id as integer",
+						"     ),",
+						"     allowSchemaDrift: true,",
+						"     validateSchema: false,",
+						"     isolationLevel: 'READ_UNCOMMITTED',",
+						"     format: 'table') ~> dimactorfilmassoc",
+						"stgactorfilmassoc, dimactorfilmassoc exists(stg_actor_film_id == dim_actor_movie_assoc_id,",
+						"     negate:true,",
+						"     broadcast: 'auto')~> notExistsInsert",
+						"stgactorfilmassoc, dimactorfilmassoc join(stg_actor_film_id == dim_actor_movie_assoc_id,",
+						"     joinType:'inner',",
+						"     matchType:'exact',",
+						"     ignoreSpaces: false,",
+						"     broadcast: 'auto')~> existsUpdate",
+						"existsUpdate alterRow(updateIf(notEquals(iifNull(stgactorfilmassoc@actor_id,-1,stgactorfilmassoc@actor_id),iifNull(dimactorfilmassoc@actor_id,-1,dimactorfilmassoc@actor_id)))) ~> alterRow1",
+						"notExistsInsert sink(allowSchemaDrift: true,",
 						"     validateSchema: false,",
 						"     input(",
 						"          dim_actor_movie_assoc_id as integer,",
@@ -401,6 +498,7 @@
 						"     updateable:false,",
 						"     upsertable:false,",
 						"     format: 'table',",
+						"     batchSize: 100,",
 						"     skipDuplicateMapInputs: true,",
 						"     skipDuplicateMapOutputs: true,",
 						"     errorHandlingOption: 'stopOnFirstError',",
@@ -408,7 +506,7 @@
 						"          dim_actor_movie_assoc_id = stg_actor_film_id,",
 						"          actor_id,",
 						"          film_id",
-						"     )) ~> sink1"
+						"     )) ~> sinkDimActorFilmAssoc"
 					]
 				}
 			},
@@ -1012,13 +1110,6 @@
 						},
 						{
 							"dataset": {
-								"referenceName": "map_film",
-								"type": "DatasetReference"
-							},
-							"name": "mapfilm"
-						},
-						{
-							"dataset": {
 								"referenceName": "map_director",
 								"type": "DatasetReference"
 							},
@@ -1043,13 +1134,7 @@
 					],
 					"transformations": [
 						{
-							"name": "joinMapFilm"
-						},
-						{
 							"name": "distinctDirector"
-						},
-						{
-							"name": "selectFilmIdDirector"
 						},
 						{
 							"name": "existsUpdate"
@@ -1081,16 +1166,6 @@
 						"     isolationLevel: 'READ_UNCOMMITTED',",
 						"     format: 'table') ~> landingmovies",
 						"source(output(",
-						"          film_id as integer,",
-						"          title as string,",
-						"          film_year as integer,",
-						"          director as string",
-						"     ),",
-						"     allowSchemaDrift: true,",
-						"     validateSchema: false,",
-						"     isolationLevel: 'READ_UNCOMMITTED',",
-						"     format: 'table') ~> mapfilm",
-						"source(output(",
 						"          director_id as integer,",
 						"          director as string",
 						"     ),",
@@ -1098,28 +1173,15 @@
 						"     validateSchema: false,",
 						"     isolationLevel: 'READ_UNCOMMITTED',",
 						"     format: 'table') ~> mapdirector",
-						"landingmovies, mapfilm join(landingmovies@Title == mapfilm@title",
-						"     && Year == film_year",
-						"     && landingmovies@Director == mapfilm@director,",
-						"     joinType:'inner',",
-						"     matchType:'exact',",
-						"     ignoreSpaces: false,",
-						"     broadcast: 'auto')~> joinMapFilm",
-						"selectFilmIdDirector aggregate(groupBy(director),",
-						"     each(match(name!='director'), $$ = first($$))) ~> distinctDirector",
-						"joinMapFilm select(mapColumn(",
-						"          film_id,",
-						"          director = landingmovies@Director",
-						"     ),",
-						"     skipDuplicateMapInputs: true,",
-						"     skipDuplicateMapOutputs: true) ~> selectFilmIdDirector",
-						"distinctDirector, mapdirector join(distinctDirector@director == mapdirector@director,",
+						"landingmovies aggregate(groupBy(Director),",
+						"     each(match(name!='Director'), $$ = first($$))) ~> distinctDirector",
+						"distinctDirector, mapdirector join(distinctDirector@Director == mapdirector@director,",
 						"     joinType:'inner',",
 						"     matchType:'exact',",
 						"     ignoreSpaces: false,",
 						"     broadcast: 'auto')~> existsUpdate",
-						"existsUpdate alterRow(updateIf(notEquals(iifNull(mapdirector@director,'NULL',mapdirector@director),iifNull(distinctDirector@director,'NULL',distinctDirector@director)))) ~> updateIf",
-						"distinctDirector, mapdirector exists(distinctDirector@director == mapdirector@director,",
+						"existsUpdate alterRow(updateIf(notEquals(iifNull(mapdirector@director,'NULL',mapdirector@director),iifNull(distinctDirector@Director,'NULL',distinctDirector@Director)))) ~> updateIf",
+						"distinctDirector, mapdirector exists(distinctDirector@Director == mapdirector@director,",
 						"     negate:true,",
 						"     broadcast: 'auto')~> notExistsInsert",
 						"updateIf sink(allowSchemaDrift: true,",
@@ -1139,7 +1201,7 @@
 						"     skipDuplicateMapOutputs: true,",
 						"     errorHandlingOption: 'stopOnFirstError',",
 						"     mapColumn(",
-						"          director = distinctDirector@director,",
+						"          director = distinctDirector@Director,",
 						"          director_id",
 						"     )) ~> sinkMapDirector",
 						"notExistsInsert sink(allowSchemaDrift: true,",
@@ -1158,7 +1220,7 @@
 						"     skipDuplicateMapOutputs: true,",
 						"     errorHandlingOption: 'stopOnFirstError',",
 						"     mapColumn(",
-						"          director",
+						"          director = Director",
 						"     )) ~> insertMapDirector"
 					]
 				}
@@ -1828,10 +1890,10 @@
 					"sources": [
 						{
 							"dataset": {
-								"referenceName": "blob_land_movies",
+								"referenceName": "move_db_landing",
 								"type": "DatasetReference"
 							},
-							"name": "source1"
+							"name": "landingmovies"
 						},
 						{
 							"dataset": {
@@ -1873,25 +1935,25 @@
 					],
 					"transformations": [
 						{
-							"name": "derivedColumn1"
+							"name": "actorsSplit"
 						},
 						{
-							"name": "flatten1"
+							"name": "flattenActors"
 						},
 						{
-							"name": "cleanActors"
+							"name": "trimActors"
 						},
 						{
-							"name": "join1"
+							"name": "joinMapFilm"
 						},
 						{
-							"name": "select2"
+							"name": "selectActorsTitleYearDIr"
 						},
 						{
-							"name": "join2"
+							"name": "joinMapActor"
 						},
 						{
-							"name": "select3"
+							"name": "actorsFilmId"
 						},
 						{
 							"name": "select4"
@@ -1911,22 +1973,23 @@
 					],
 					"scriptLines": [
 						"source(output(",
-						"          Rank as string,",
+						"          Rank as integer,",
 						"          Title as string,",
 						"          Genre as string,",
 						"          Description as string,",
 						"          Director as string,",
 						"          Actors as string,",
-						"          Year as string,",
-						"          {Runtime (Minutes)} as string,",
-						"          Rating as string,",
-						"          Votes as string,",
-						"          {Revenue (Millions)} as string,",
-						"          Metascore as string",
+						"          Year as integer,",
+						"          Runtime_Minutes as integer,",
+						"          Rating as double,",
+						"          Votes as integer,",
+						"          Revenue_Millions as double,",
+						"          Metascore as integer",
 						"     ),",
 						"     allowSchemaDrift: true,",
 						"     validateSchema: false,",
-						"     ignoreNoFilesFound: false) ~> source1",
+						"     isolationLevel: 'READ_UNCOMMITTED',",
+						"     format: 'table') ~> landingmovies",
 						"source(output(",
 						"          actor_id as integer,",
 						"          actor as string",
@@ -1954,8 +2017,8 @@
 						"     validateSchema: false,",
 						"     isolationLevel: 'READ_UNCOMMITTED',",
 						"     format: 'table') ~> stgactorfilmassoc",
-						"source1 derive(Actors = split(Actors, ',')) ~> derivedColumn1",
-						"derivedColumn1 foldDown(unroll(Actors),",
+						"landingmovies derive(Actors = split(Actors, ',')) ~> actorsSplit",
+						"actorsSplit foldDown(unroll(Actors),",
 						"     mapColumn(",
 						"          Rank,",
 						"          Title,",
@@ -1964,41 +2027,41 @@
 						"          Director,",
 						"          Actors,",
 						"          Year,",
-						"          {Runtime (Minutes)},",
+						"          {Runtime (Minutes)} = Runtime_Minutes,",
 						"          Rating,",
 						"          Votes,",
-						"          {Revenue (Millions)},",
+						"          {Revenue (Millions)} = Revenue_Millions,",
 						"          Metascore",
 						"     ),",
 						"     skipDuplicateMapInputs: false,",
-						"     skipDuplicateMapOutputs: false) ~> flatten1",
-						"flatten1 derive(Actors = trim(Actors)) ~> cleanActors",
-						"select2, mapfilm join(select2@Title == mapfilm@title",
-						"     && select2@Director == mapfilm@director,",
+						"     skipDuplicateMapOutputs: false) ~> flattenActors",
+						"flattenActors derive(Actors = trim(Actors)) ~> trimActors",
+						"selectActorsTitleYearDIr, mapfilm join(selectActorsTitleYearDIr@Title == mapfilm@title",
+						"     && selectActorsTitleYearDIr@Director == mapfilm@director,",
 						"     joinType:'inner',",
 						"     matchType:'exact',",
 						"     ignoreSpaces: false,",
-						"     broadcast: 'auto')~> join1",
-						"cleanActors select(mapColumn(",
+						"     broadcast: 'auto')~> joinMapFilm",
+						"trimActors select(mapColumn(",
 						"          Actors,",
 						"          Title,",
 						"          Director,",
 						"          Year",
 						"     ),",
 						"     skipDuplicateMapInputs: false,",
-						"     skipDuplicateMapOutputs: false) ~> select2",
-						"select3, mapactor join(Actors == actor,",
+						"     skipDuplicateMapOutputs: false) ~> selectActorsTitleYearDIr",
+						"actorsFilmId, mapactor join(Actors == actor,",
 						"     joinType:'left',",
 						"     matchType:'exact',",
 						"     ignoreSpaces: false,",
-						"     broadcast: 'off')~> join2",
-						"join1 select(mapColumn(",
+						"     broadcast: 'off')~> joinMapActor",
+						"joinMapFilm select(mapColumn(",
 						"          Actors,",
 						"          film_id",
 						"     ),",
 						"     skipDuplicateMapInputs: false,",
-						"     skipDuplicateMapOutputs: false) ~> select3",
-						"join2 select(mapColumn(",
+						"     skipDuplicateMapOutputs: false) ~> actorsFilmId",
+						"joinMapActor select(mapColumn(",
 						"          film_id,",
 						"          actor_id",
 						"     ),",
