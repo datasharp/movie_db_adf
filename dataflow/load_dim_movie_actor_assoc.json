@@ -10,6 +10,13 @@
 						"type": "DatasetReference"
 					},
 					"name": "stgactorfilmassoc"
+				},
+				{
+					"dataset": {
+						"referenceName": "dim_actor_movie_assoc",
+						"type": "DatasetReference"
+					},
+					"name": "dimactorfilmassoc"
 				}
 			],
 			"sinks": [
@@ -18,10 +25,20 @@
 						"referenceName": "dim_actor_movie_assoc",
 						"type": "DatasetReference"
 					},
-					"name": "sink1"
+					"name": "sinkDimActorFilmAssoc"
 				}
 			],
-			"transformations": [],
+			"transformations": [
+				{
+					"name": "notExistsInsert"
+				},
+				{
+					"name": "existsUpdate"
+				},
+				{
+					"name": "alterRow1"
+				}
+			],
 			"scriptLines": [
 				"source(output(",
 				"          stg_actor_film_id as integer,",
@@ -32,7 +49,25 @@
 				"     validateSchema: false,",
 				"     isolationLevel: 'READ_UNCOMMITTED',",
 				"     format: 'table') ~> stgactorfilmassoc",
-				"stgactorfilmassoc sink(allowSchemaDrift: true,",
+				"source(output(",
+				"          dim_actor_movie_assoc_id as integer,",
+				"          actor_id as integer,",
+				"          film_id as integer",
+				"     ),",
+				"     allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     isolationLevel: 'READ_UNCOMMITTED',",
+				"     format: 'table') ~> dimactorfilmassoc",
+				"stgactorfilmassoc, dimactorfilmassoc exists(stg_actor_film_id == dim_actor_movie_assoc_id,",
+				"     negate:true,",
+				"     broadcast: 'auto')~> notExistsInsert",
+				"stgactorfilmassoc, dimactorfilmassoc join(stg_actor_film_id == dim_actor_movie_assoc_id,",
+				"     joinType:'inner',",
+				"     matchType:'exact',",
+				"     ignoreSpaces: false,",
+				"     broadcast: 'auto')~> existsUpdate",
+				"existsUpdate alterRow(updateIf(notEquals(iifNull(stgactorfilmassoc@actor_id,-1,stgactorfilmassoc@actor_id),iifNull(dimactorfilmassoc@actor_id,-1,dimactorfilmassoc@actor_id)))) ~> alterRow1",
+				"notExistsInsert sink(allowSchemaDrift: true,",
 				"     validateSchema: false,",
 				"     input(",
 				"          dim_actor_movie_assoc_id as integer,",
@@ -44,6 +79,7 @@
 				"     updateable:false,",
 				"     upsertable:false,",
 				"     format: 'table',",
+				"     batchSize: 100,",
 				"     skipDuplicateMapInputs: true,",
 				"     skipDuplicateMapOutputs: true,",
 				"     errorHandlingOption: 'stopOnFirstError',",
@@ -51,7 +87,7 @@
 				"          dim_actor_movie_assoc_id = stg_actor_film_id,",
 				"          actor_id,",
 				"          film_id",
-				"     )) ~> sink1"
+				"     )) ~> sinkDimActorFilmAssoc"
 			]
 		}
 	}
