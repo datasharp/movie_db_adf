@@ -1,0 +1,34 @@
+{
+	"name": "load_dim_genre",
+	"properties": {
+		"type": "MappingDataFlow",
+		"typeProperties": {
+			"sources": [
+				{
+					"dataset": {
+						"referenceName": "stg_genre",
+						"type": "DatasetReference"
+					},
+					"name": "stggenre"
+				},
+				{
+					"name": "targetdimgenre"
+				}
+			],
+			"sinks": [],
+			"transformations": [],
+			"scriptLines": [
+				"source(output(",
+				"          genre_id as integer,",
+				"          genre as string",
+				"     ),",
+				"     allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     isolationLevel: 'READ_UNCOMMITTED',",
+				"     format: 'table') ~> stggenre",
+				"source(allowSchemaDrift: true,",
+				"     validateSchema: false) ~> targetdimgenre"
+			]
+		}
+	}
+}
