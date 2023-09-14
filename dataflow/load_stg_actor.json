@@ -6,10 +6,10 @@
 			"sources": [
 				{
 					"dataset": {
-						"referenceName": "blob_land_movies",
+						"referenceName": "move_db_landing",
 						"type": "DatasetReference"
 					},
-					"name": "source1"
+					"name": "landmovies"
 				},
 				{
 					"dataset": {
@@ -33,62 +33,44 @@
 						"type": "DatasetReference"
 					},
 					"name": "insertstgactor"
-				},
-				{
-					"dataset": {
-						"referenceName": "stg_actor",
-						"type": "DatasetReference"
-					},
-					"name": "updatestgactor"
 				}
 			],
 			"transformations": [
 				{
-					"name": "derivedColumn1"
+					"name": "splitActors"
 				},
 				{
-					"name": "flatten1"
+					"name": "flattenActors"
 				},
 				{
-					"name": "cleanActors"
+					"name": "trimActors"
 				},
 				{
-					"name": "join1"
+					"name": "joinMapActor"
 				},
 				{
-					"name": "aggregate1"
-				},
-				{
-					"name": "select1"
-				},
-				{
-					"name": "notexistsinsert"
-				},
-				{
-					"name": "updateif"
-				},
-				{
-					"name": "existsupdate"
+					"name": "distinctActor"
 				}
 			],
 			"scriptLines": [
 				"source(output(",
-				"          Rank as string,",
+				"          Rank as integer,",
 				"          Title as string,",
 				"          Genre as string,",
 				"          Description as string,",
 				"          Director as string,",
 				"          Actors as string,",
-				"          Year as string,",
-				"          {Runtime (Minutes)} as string,",
-				"          Rating as string,",
-				"          Votes as string,",
-				"          {Revenue (Millions)} as string,",
-				"          Metascore as string",
+				"          Year as integer,",
+				"          Runtime_Minutes as integer,",
+				"          Rating as double,",
+				"          Votes as integer,",
+				"          Revenue_Millions as double,",
+				"          Metascore as integer",
 				"     ),",
 				"     allowSchemaDrift: true,",
 				"     validateSchema: false,",
-				"     ignoreNoFilesFound: false) ~> source1",
+				"     isolationLevel: 'READ_UNCOMMITTED',",
+				"     format: 'table') ~> landmovies",
 				"source(output(",
 				"          actor_id as integer,",
 				"          actor as string",
@@ -105,8 +87,8 @@
 				"     validateSchema: false,",
 				"     isolationLevel: 'READ_UNCOMMITTED',",
 				"     format: 'table') ~> stgactor",
-				"source1 derive(Actors = split(Actors, ',')) ~> derivedColumn1",
-				"derivedColumn1 foldDown(unroll(Actors),",
+				"landmovies derive(Actors = split(Actors, ',')) ~> splitActors",
+				"splitActors foldDown(unroll(Actors),",
 				"     mapColumn(",
 				"          Rank,",
 				"          Title,",
@@ -115,38 +97,23 @@
 				"          Director,",
 				"          Actors,",
 				"          Year,",
-				"          {Runtime (Minutes)},",
+				"          {Runtime (Minutes)} = Runtime_Minutes,",
 				"          Rating,",
 				"          Votes,",
-				"          {Revenue (Millions)},",
+				"          {Revenue (Millions)} = Revenue_Millions,",
 				"          Metascore",
 				"     ),",
 				"     skipDuplicateMapInputs: false,",
-				"     skipDuplicateMapOutputs: false) ~> flatten1",
-				"flatten1 derive(Actors = trim(Actors)) ~> cleanActors",
-				"cleanActors, mapactor join(Actors == actor,",
+				"     skipDuplicateMapOutputs: false) ~> flattenActors",
+				"flattenActors derive(Actors = trim(Actors)) ~> trimActors",
+				"trimActors, mapactor join(Actors == actor,",
 				"     joinType:'inner',",
 				"     matchType:'exact',",
 				"     ignoreSpaces: false,",
-				"     broadcast: 'auto')~> join1",
-				"join1 aggregate(groupBy(Actors),",
-				"     each(match(name!='Actors'), $$ = first($$))) ~> aggregate1",
-				"aggregate1 select(mapColumn(",
-				"          actor_id,",
-				"          actor",
-				"     ),",
-				"     skipDuplicateMapInputs: true,",
-				"     skipDuplicateMapOutputs: true) ~> select1",
-				"select1, stgactor exists(select1@actor_id == stgactor@actor_id,",
-				"     negate:true,",
-				"     broadcast: 'auto')~> notexistsinsert",
-				"existsupdate alterRow(updateIf(notEquals(iifNull(stgactor@actor,'NULL',stgactor@actor),iifNull(select1@actor,'NULL',select1@actor)))) ~> updateif",
-				"select1, stgactor join(select1@actor_id == stgactor@actor_id,",
-				"     joinType:'inner',",
-				"     matchType:'exact',",
-				"     ignoreSpaces: false,",
-				"     broadcast: 'auto')~> existsupdate",
-				"notexistsinsert sink(allowSchemaDrift: true,",
+				"     broadcast: 'auto')~> joinMapActor",
+				"joinMapActor aggregate(groupBy(Actors),",
+				"     each(match(name!='Actors'), $$ = first($$))) ~> distinctActor",
+				"distinctActor sink(allowSchemaDrift: true,",
 				"     validateSchema: false,",
 				"     input(",
 				"          actor_id as integer,",
@@ -156,31 +123,16 @@
 				"     insertable:true,",
 				"     updateable:false,",
 				"     upsertable:false,",
-				"     format: 'table',",
-				"     batchSize: 100,",
-				"     skipDuplicateMapInputs: true,",
-				"     skipDuplicateMapOutputs: true,",
-				"     errorHandlingOption: 'stopOnFirstError') ~> insertstgactor",
-				"updateif sink(allowSchemaDrift: true,",
-				"     validateSchema: false,",
-				"     input(",
-				"          actor_id as integer,",
-				"          actor as string",
-				"     ),",
-				"     deletable:false,",
-				"     insertable:false,",
-				"     updateable:true,",
-				"     upsertable:false,",
-				"     keys:['actor_id'],",
+				"     truncate:true,",
 				"     format: 'table',",
 				"     batchSize: 100,",
 				"     skipDuplicateMapInputs: true,",
 				"     skipDuplicateMapOutputs: true,",
 				"     errorHandlingOption: 'stopOnFirstError',",
 				"     mapColumn(",
-				"          actor_id = select1@actor_id,",
-				"          actor = select1@actor",
-				"     )) ~> updatestgactor"
+				"          actor_id,",
+				"          actor",
+				"     )) ~> insertstgactor"
 			]
 		}
 	}
