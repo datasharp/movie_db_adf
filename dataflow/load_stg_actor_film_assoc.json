@@ -24,13 +24,6 @@
 						"type": "DatasetReference"
 					},
 					"name": "mapfilm"
-				},
-				{
-					"dataset": {
-						"referenceName": "stg_actor_film_assoc",
-						"type": "DatasetReference"
-					},
-					"name": "stgactorfilmassoc"
 				}
 			],
 			"sinks": [
@@ -39,14 +32,7 @@
 						"referenceName": "stg_actor_film_assoc",
 						"type": "DatasetReference"
 					},
-					"name": "insertintostgfilmactorassoc"
-				},
-				{
-					"dataset": {
-						"referenceName": "stg_actor_film_assoc",
-						"type": "DatasetReference"
-					},
-					"name": "deletefromstgfilmactorassoc"
+					"name": "insertStgActorFilmAssoc"
 				}
 			],
 			"transformations": [
@@ -70,21 +56,6 @@
 				},
 				{
 					"name": "actorsFilmId"
-				},
-				{
-					"name": "filmIDActorID"
-				},
-				{
-					"name": "insertwherenotexists"
-				},
-				{
-					"name": "deletenotexists"
-				},
-				{
-					"name": "delete"
-				},
-				{
-					"name": "select5"
 				}
 			],
 			"scriptLines": [
@@ -124,15 +95,6 @@
 				"     validateSchema: false,",
 				"     isolationLevel: 'READ_UNCOMMITTED',",
 				"     format: 'table') ~> mapfilm",
-				"source(output(",
-				"          stg_actor_film_id as integer,",
-				"          actor_id as integer,",
-				"          film_id as integer",
-				"     ),",
-				"     allowSchemaDrift: true,",
-				"     validateSchema: false,",
-				"     isolationLevel: 'READ_UNCOMMITTED',",
-				"     format: 'table') ~> stgactorfilmassoc",
 				"landingmovies derive(Actors = split(Actors, ',')) ~> actorsSplit",
 				"actorsSplit foldDown(unroll(Actors),",
 				"     mapColumn(",
@@ -177,28 +139,7 @@
 				"     ),",
 				"     skipDuplicateMapInputs: false,",
 				"     skipDuplicateMapOutputs: false) ~> actorsFilmId",
-				"joinMapActor select(mapColumn(",
-				"          film_id,",
-				"          actor_id",
-				"     ),",
-				"     skipDuplicateMapInputs: true,",
-				"     skipDuplicateMapOutputs: true) ~> filmIDActorID",
-				"filmIDActorID, select5 exists(filmIDActorID@film_id == select5@film_id",
-				"     && filmIDActorID@actor_id == select5@actor_id,",
-				"     negate:true,",
-				"     broadcast: 'auto')~> insertwherenotexists",
-				"select5, filmIDActorID exists(filmIDActorID@film_id == select5@film_id",
-				"     && filmIDActorID@actor_id == select5@actor_id,",
-				"     negate:true,",
-				"     broadcast: 'auto')~> deletenotexists",
-				"deletenotexists alterRow(deleteIf(true())) ~> delete",
-				"stgactorfilmassoc select(mapColumn(",
-				"          actor_id,",
-				"          film_id",
-				"     ),",
-				"     skipDuplicateMapInputs: true,",
-				"     skipDuplicateMapOutputs: true) ~> select5",
-				"insertwherenotexists sink(allowSchemaDrift: true,",
+				"joinMapActor sink(allowSchemaDrift: true,",
 				"     validateSchema: false,",
 				"     input(",
 				"          stg_actor_film_id as integer,",
@@ -209,30 +150,16 @@
 				"     insertable:true,",
 				"     updateable:false,",
 				"     upsertable:false,",
-				"     format: 'table',",
-				"     batchSize: 100,",
-				"     errorHandlingOption: 'stopOnFirstError',",
-				"     mapColumn(",
-				"          actor_id,",
-				"          film_id",
-				"     )) ~> insertintostgfilmactorassoc",
-				"delete sink(allowSchemaDrift: true,",
-				"     validateSchema: false,",
-				"     input(",
-				"          stg_actor_film_id as integer,",
-				"          actor_id as integer,",
-				"          film_id as integer",
-				"     ),",
-				"     deletable:true,",
-				"     insertable:false,",
-				"     updateable:false,",
-				"     upsertable:false,",
-				"     keys:['actor_id'],",
+				"     truncate:true,",
 				"     format: 'table',",
 				"     batchSize: 100,",
 				"     skipDuplicateMapInputs: true,",
 				"     skipDuplicateMapOutputs: true,",
-				"     errorHandlingOption: 'stopOnFirstError') ~> deletefromstgfilmactorassoc"
+				"     errorHandlingOption: 'stopOnFirstError',",
+				"     mapColumn(",
+				"          actor_id,",
+				"          film_id",
+				"     )) ~> insertStgActorFilmAssoc"
 			]
 		}
 	}
