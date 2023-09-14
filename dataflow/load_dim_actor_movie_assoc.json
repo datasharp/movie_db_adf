@@ -1,5 +1,5 @@
 {
-	"name": "load_dim_movie_actor_assoc",
+	"name": "load_dim_actor_movie_assoc",
 	"properties": {
 		"type": "MappingDataFlow",
 		"typeProperties": {

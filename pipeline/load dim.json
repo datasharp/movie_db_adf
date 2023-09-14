@@ -88,7 +88,7 @@
 				"userProperties": [],
 				"typeProperties": {
 					"dataflow": {
-						"referenceName": "load_dim_movie_actor_assoc",
+						"referenceName": "load_dim_actor_movie_assoc",
 						"type": "DataFlowReference"
 					},
 					"compute": {
