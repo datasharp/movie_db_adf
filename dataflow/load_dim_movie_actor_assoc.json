@@ -26,6 +26,13 @@
 						"type": "DatasetReference"
 					},
 					"name": "sinkDimActorFilmAssoc"
+				},
+				{
+					"dataset": {
+						"referenceName": "dim_actor_movie_assoc",
+						"type": "DatasetReference"
+					},
+					"name": "updateDimActorFilmAssoc"
 				}
 			],
 			"transformations": [
@@ -36,7 +43,7 @@
 					"name": "existsUpdate"
 				},
 				{
-					"name": "alterRow1"
+					"name": "updateIf"
 				}
 			],
 			"scriptLines": [
@@ -66,7 +73,7 @@
 				"     matchType:'exact',",
 				"     ignoreSpaces: false,",
 				"     broadcast: 'auto')~> existsUpdate",
-				"existsUpdate alterRow(updateIf(notEquals(iifNull(stgactorfilmassoc@actor_id,-1,stgactorfilmassoc@actor_id),iifNull(dimactorfilmassoc@actor_id,-1,dimactorfilmassoc@actor_id)))) ~> alterRow1",
+				"existsUpdate alterRow(updateIf(notEquals(iifNull(stgactorfilmassoc@actor_id,-1,stgactorfilmassoc@actor_id),iifNull(dimactorfilmassoc@actor_id,-1,dimactorfilmassoc@actor_id)))) ~> updateIf",
 				"notExistsInsert sink(allowSchemaDrift: true,",
 				"     validateSchema: false,",
 				"     input(",
@@ -87,7 +94,28 @@
 				"          dim_actor_movie_assoc_id = stg_actor_film_id,",
 				"          actor_id,",
 				"          film_id",
-				"     )) ~> sinkDimActorFilmAssoc"
+				"     )) ~> sinkDimActorFilmAssoc",
+				"updateIf sink(allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     input(",
+				"          dim_actor_movie_assoc_id as integer,",
+				"          actor_id as integer,",
+				"          film_id as integer",
+				"     ),",
+				"     deletable:false,",
+				"     insertable:false,",
+				"     updateable:true,",
+				"     upsertable:false,",
+				"     keys:['dim_actor_movie_assoc_id'],",
+				"     format: 'table',",
+				"     skipDuplicateMapInputs: true,",
+				"     skipDuplicateMapOutputs: true,",
+				"     errorHandlingOption: 'stopOnFirstError',",
+				"     mapColumn(",
+				"          dim_actor_movie_assoc_id,",
+				"          actor_id = stgactorfilmassoc@actor_id,",
+				"          film_id = stgactorfilmassoc@film_id",
+				"     )) ~> updateDimActorFilmAssoc"
 			]
 		}
 	}
