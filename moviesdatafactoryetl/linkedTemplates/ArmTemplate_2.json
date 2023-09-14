@@ -177,7 +177,8 @@
 								"datasetParameters": {
 									"stgactorfilmassoc": {},
 									"dimactorfilmassoc": {},
-									"sinkDimActorFilmAssoc": {}
+									"sinkDimActorFilmAssoc": {},
+									"updateDimActorFilmAssoc": {}
 								}
 							},
 							"staging": {},
@@ -509,9 +510,7 @@
 									"landingmovies": {},
 									"mapactor": {},
 									"mapfilm": {},
-									"stgactorfilmassoc": {},
-									"insertintostgfilmactorassoc": {},
-									"deletefromstgfilmactorassoc": {}
+									"insertStgActorFilmAssoc": {}
 								}
 							},
 							"staging": {},
@@ -540,11 +539,10 @@
 								"type": "DataFlowReference",
 								"parameters": {},
 								"datasetParameters": {
-									"source1": {},
+									"landmovies": {},
 									"mapactor": {},
 									"stgactor": {},
-									"insertstgactor": {},
-									"updatestgactor": {}
+									"insertstgactor": {}
 								}
 							},
 							"staging": {},
@@ -665,7 +663,7 @@
 			"properties": {
 				"activities": [
 					{
-						"name": "load_stg_actor_film_assoc",
+						"name": "load_dim_movie_actor_assoc",
 						"type": "ExecuteDataFlow",
 						"dependsOn": [],
 						"policy": {
@@ -678,16 +676,14 @@
 						"userProperties": [],
 						"typeProperties": {
 							"dataflow": {
-								"referenceName": "load_stg_actor_film_assoc",
+								"referenceName": "load_dim_movie_actor_assoc",
 								"type": "DataFlowReference",
 								"parameters": {},
 								"datasetParameters": {
-									"landingmovies": {},
-									"mapactor": {},
-									"mapfilm": {},
 									"stgactorfilmassoc": {},
-									"insertintostgfilmactorassoc": {},
-									"deletefromstgfilmactorassoc": {}
+									"dimactorfilmassoc": {},
+									"sinkDimActorFilmAssoc": {},
+									"updateDimActorFilmAssoc": {}
 								}
 							},
 							"staging": {},
