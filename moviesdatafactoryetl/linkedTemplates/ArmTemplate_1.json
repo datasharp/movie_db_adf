@@ -416,7 +416,7 @@
 			"dependsOn": []
 		},
 		{
-			"name": "[concat(parameters('factoryName'), '/load_dim_movie_actor_assoc')]",
+			"name": "[concat(parameters('factoryName'), '/load_dim_actor_movie_assoc')]",
 			"type": "Microsoft.DataFactory/factories/dataflows",
 			"apiVersion": "2018-06-01",
 			"properties": {

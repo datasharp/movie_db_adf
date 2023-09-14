@@ -181,7 +181,7 @@
 						"userProperties": [],
 						"typeProperties": {
 							"dataflow": {
-								"referenceName": "load_dim_movie_actor_assoc",
+								"referenceName": "load_dim_actor_movie_assoc",
 								"type": "DataFlowReference",
 								"parameters": {},
 								"datasetParameters": {
@@ -271,7 +271,7 @@
 				"[concat(variables('factoryId'), '/dataflows/load_dim_movie')]",
 				"[concat(variables('factoryId'), '/dataflows/load_dim_genre_movie_assoc')]",
 				"[concat(variables('factoryId'), '/dataflows/load_dim_actor')]",
-				"[concat(variables('factoryId'), '/dataflows/load_dim_movie_actor_assoc')]",
+				"[concat(variables('factoryId'), '/dataflows/load_dim_actor_movie_assoc')]",
 				"[concat(variables('factoryId'), '/dataflows/load_dim_dir')]",
 				"[concat(variables('factoryId'), '/dataflows/load_dim_year')]"
 			]
@@ -707,7 +707,7 @@
 						"userProperties": [],
 						"typeProperties": {
 							"dataflow": {
-								"referenceName": "load_dim_movie_actor_assoc",
+								"referenceName": "load_dim_actor_movie_assoc",
 								"type": "DataFlowReference",
 								"parameters": {},
 								"datasetParameters": {
@@ -733,7 +733,7 @@
 				"annotations": []
 			},
 			"dependsOn": [
-				"[concat(variables('factoryId'), '/dataflows/load_dim_movie_actor_assoc')]"
+				"[concat(variables('factoryId'), '/dataflows/load_dim_actor_movie_assoc')]"
 			]
 		},
 		{
@@ -1960,7 +1960,7 @@
 			]
 		},
 		{
-			"name": "[concat(parameters('factoryName'), '/load_dim_movie_actor_assoc')]",
+			"name": "[concat(parameters('factoryName'), '/load_dim_actor_movie_assoc')]",
 			"type": "Microsoft.DataFactory/factories/dataflows",
 			"apiVersion": "2018-06-01",
 			"properties": {
