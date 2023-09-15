@@ -10,6 +10,13 @@
 						"type": "DatasetReference"
 					},
 					"name": "stggenrefilmassoc"
+				},
+				{
+					"dataset": {
+						"referenceName": "dim_genre_movie_assoc",
+						"type": "DatasetReference"
+					},
+					"name": "targetDimGenreFilmAssoc"
 				}
 			],
 			"sinks": [
@@ -18,10 +25,27 @@
 						"referenceName": "dim_genre_movie_assoc",
 						"type": "DatasetReference"
 					},
-					"name": "sink1"
+					"name": "insertDimGenreFilmAssoc"
+				},
+				{
+					"dataset": {
+						"referenceName": "dim_genre_movie_assoc",
+						"type": "DatasetReference"
+					},
+					"name": "updateDimGenreFilmAssoc"
 				}
 			],
-			"transformations": [],
+			"transformations": [
+				{
+					"name": "notExistsInsert"
+				},
+				{
+					"name": "existsUpdate"
+				},
+				{
+					"name": "updateIf"
+				}
+			],
 			"scriptLines": [
 				"source(output(",
 				"          stg_genre_film_id as integer,",
@@ -32,7 +56,26 @@
 				"     validateSchema: false,",
 				"     isolationLevel: 'READ_UNCOMMITTED',",
 				"     format: 'table') ~> stggenrefilmassoc",
-				"stggenrefilmassoc sink(allowSchemaDrift: true,",
+				"source(output(",
+				"          dim_genre_movie_assoc_id as integer,",
+				"          genre_id as integer,",
+				"          film_id as integer",
+				"     ),",
+				"     allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     isolationLevel: 'READ_UNCOMMITTED',",
+				"     format: 'table') ~> targetDimGenreFilmAssoc",
+				"stggenrefilmassoc, targetDimGenreFilmAssoc exists(stg_genre_film_id == dim_genre_movie_assoc_id,",
+				"     negate:true,",
+				"     broadcast: 'auto')~> notExistsInsert",
+				"stggenrefilmassoc, targetDimGenreFilmAssoc join(stg_genre_film_id == dim_genre_movie_assoc_id,",
+				"     joinType:'inner',",
+				"     matchType:'exact',",
+				"     ignoreSpaces: false,",
+				"     broadcast: 'auto')~> existsUpdate",
+				"existsUpdate alterRow(updateIf(notEquals(iifNull(stggenrefilmassoc@genre_id,-1,stggenrefilmassoc@genre_id),iifNull(targetDimGenreFilmAssoc@genre_id,-1,targetDimGenreFilmAssoc@genre_id))),",
+				"     updateIf(notEquals(iifNull(stggenrefilmassoc@film_id,-1,stggenrefilmassoc@film_id),iifNull(targetDimGenreFilmAssoc@film_id,-1,targetDimGenreFilmAssoc@film_id)))) ~> updateIf",
+				"notExistsInsert sink(allowSchemaDrift: true,",
 				"     validateSchema: false,",
 				"     input(",
 				"          dim_genre_movie_assoc_id as integer,",
@@ -44,6 +87,7 @@
 				"     updateable:false,",
 				"     upsertable:false,",
 				"     format: 'table',",
+				"     batchSize: 100,",
 				"     skipDuplicateMapInputs: true,",
 				"     skipDuplicateMapOutputs: true,",
 				"     errorHandlingOption: 'stopOnFirstError',",
@@ -51,7 +95,28 @@
 				"          dim_genre_movie_assoc_id = stg_genre_film_id,",
 				"          genre_id,",
 				"          film_id",
-				"     )) ~> sink1"
+				"     )) ~> insertDimGenreFilmAssoc",
+				"updateIf sink(allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     input(",
+				"          dim_genre_movie_assoc_id as integer,",
+				"          genre_id as integer,",
+				"          film_id as integer",
+				"     ),",
+				"     deletable:false,",
+				"     insertable:false,",
+				"     updateable:true,",
+				"     upsertable:false,",
+				"     keys:['dim_genre_movie_assoc_id'],",
+				"     format: 'table',",
+				"     skipDuplicateMapInputs: true,",
+				"     skipDuplicateMapOutputs: true,",
+				"     errorHandlingOption: 'stopOnFirstError',",
+				"     mapColumn(",
+				"          dim_genre_movie_assoc_id,",
+				"          genre_id = stggenrefilmassoc@genre_id,",
+				"          film_id = stggenrefilmassoc@film_id",
+				"     )) ~> updateDimGenreFilmAssoc"
 			]
 		}
 	}
