@@ -16,7 +16,7 @@
 						"referenceName": "dim_actor_movie_assoc",
 						"type": "DatasetReference"
 					},
-					"name": "dimactorfilmassoc"
+					"name": "targetdimactorfilmassoc"
 				}
 			],
 			"sinks": [
@@ -64,16 +64,16 @@
 				"     allowSchemaDrift: true,",
 				"     validateSchema: false,",
 				"     isolationLevel: 'READ_UNCOMMITTED',",
-				"     format: 'table') ~> dimactorfilmassoc",
-				"stgactorfilmassoc, dimactorfilmassoc exists(stg_actor_film_id == dim_actor_movie_assoc_id,",
+				"     format: 'table') ~> targetdimactorfilmassoc",
+				"stgactorfilmassoc, targetdimactorfilmassoc exists(stg_actor_film_id == dim_actor_movie_assoc_id,",
 				"     negate:true,",
 				"     broadcast: 'auto')~> notExistsInsert",
-				"stgactorfilmassoc, dimactorfilmassoc join(stg_actor_film_id == dim_actor_movie_assoc_id,",
+				"stgactorfilmassoc, targetdimactorfilmassoc join(stg_actor_film_id == dim_actor_movie_assoc_id,",
 				"     joinType:'inner',",
 				"     matchType:'exact',",
 				"     ignoreSpaces: false,",
 				"     broadcast: 'auto')~> existsUpdate",
-				"existsUpdate alterRow(updateIf(notEquals(iifNull(stgactorfilmassoc@actor_id,-1,stgactorfilmassoc@actor_id),iifNull(dimactorfilmassoc@actor_id,-1,dimactorfilmassoc@actor_id)))) ~> updateIf",
+				"existsUpdate alterRow(updateIf(notEquals(iifNull(stgactorfilmassoc@actor_id,-1,stgactorfilmassoc@actor_id),iifNull(targetdimactorfilmassoc@actor_id,-1,targetdimactorfilmassoc@actor_id)))) ~> updateIf",
 				"notExistsInsert sink(allowSchemaDrift: true,",
 				"     validateSchema: false,",
 				"     input(",
@@ -108,6 +108,7 @@
 				"     upsertable:false,",
 				"     keys:['dim_actor_movie_assoc_id'],",
 				"     format: 'table',",
+				"     batchSize: 100,",
 				"     skipDuplicateMapInputs: true,",
 				"     skipDuplicateMapOutputs: true,",
 				"     errorHandlingOption: 'stopOnFirstError',",
