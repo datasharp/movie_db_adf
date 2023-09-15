@@ -25,12 +25,12 @@
 						"referenceName": "stg_film",
 						"type": "DatasetReference"
 					},
-					"name": "loadintostgfilm"
+					"name": "insertStgFilm"
 				}
 			],
 			"transformations": [
 				{
-					"name": "join4"
+					"name": "joinMapFilm"
 				}
 			],
 			"scriptLines": [
@@ -62,14 +62,14 @@
 				"     validateSchema: false,",
 				"     isolationLevel: 'READ_UNCOMMITTED',",
 				"     format: 'table') ~> mapfilm",
-				"mapfilm, landingmovie join(mapfilm@title == landingmovie@Title",
-				"     && film_year == Year",
-				"     && mapfilm@director == landingmovie@Director,",
+				"landingmovie, mapfilm join(landingmovie@Title == mapfilm@title",
+				"     && landingmovie@Director == mapfilm@director",
+				"     && Year == film_year,",
 				"     joinType:'inner',",
 				"     matchType:'exact',",
 				"     ignoreSpaces: false,",
-				"     broadcast: 'auto')~> join4",
-				"join4 sink(allowSchemaDrift: true,",
+				"     broadcast: 'auto')~> joinMapFilm",
+				"joinMapFilm sink(allowSchemaDrift: true,",
 				"     validateSchema: false,",
 				"     input(",
 				"          film_id as integer,",
@@ -87,7 +87,9 @@
 				"     insertable:true,",
 				"     updateable:false,",
 				"     upsertable:false,",
+				"     truncate:true,",
 				"     format: 'table',",
+				"     batchSize: 100,",
 				"     skipDuplicateMapInputs: true,",
 				"     skipDuplicateMapOutputs: true,",
 				"     errorHandlingOption: 'stopOnFirstError',",
@@ -102,7 +104,7 @@
 				"          votes = Votes,",
 				"          revenue_millions = Revenue_Millions,",
 				"          metascore = Metascore",
-				"     )) ~> loadintostgfilm"
+				"     )) ~> insertStgFilm"
 			]
 		}
 	}
