@@ -13,10 +13,10 @@
 				},
 				{
 					"dataset": {
-						"referenceName": "map_film",
+						"referenceName": "dim_movie",
 						"type": "DatasetReference"
 					},
-					"name": "mapfilm"
+					"name": "targetDimMovie"
 				}
 			],
 			"sinks": [
@@ -25,12 +25,25 @@
 						"referenceName": "dim_movie",
 						"type": "DatasetReference"
 					},
-					"name": "sink2"
+					"name": "updateDimMovie"
+				},
+				{
+					"dataset": {
+						"referenceName": "dim_movie",
+						"type": "DatasetReference"
+					},
+					"name": "insertDimMovie"
 				}
 			],
 			"transformations": [
 				{
-					"name": "join1"
+					"name": "existsUpdate"
+				},
+				{
+					"name": "notExistsInsert"
+				},
+				{
+					"name": "updateIf"
 				}
 			],
 			"scriptLines": [
@@ -53,19 +66,45 @@
 				"source(output(",
 				"          film_id as integer,",
 				"          title as string,",
-				"          film_year as integer,",
-				"          director as string",
+				"          description as string",
 				"     ),",
 				"     allowSchemaDrift: true,",
 				"     validateSchema: false,",
 				"     isolationLevel: 'READ_UNCOMMITTED',",
-				"     format: 'table') ~> mapfilm",
-				"stgfilm, mapfilm join(stgfilm@film_id == mapfilm@film_id,",
+				"     format: 'table') ~> targetDimMovie",
+				"stgfilm, targetDimMovie join(stgfilm@film_id == targetDimMovie@film_id,",
 				"     joinType:'inner',",
 				"     matchType:'exact',",
 				"     ignoreSpaces: false,",
-				"     broadcast: 'auto')~> join1",
-				"join1 sink(allowSchemaDrift: true,",
+				"     broadcast: 'auto')~> existsUpdate",
+				"stgfilm, targetDimMovie exists(stgfilm@film_id == targetDimMovie@film_id,",
+				"     negate:true,",
+				"     broadcast: 'auto')~> notExistsInsert",
+				"existsUpdate alterRow(updateIf(notEquals(iifNull(stgfilm@title,'NULL',stgfilm@title),iifNull(targetDimMovie@title,'NULL',targetDimMovie@title))),",
+				"     updateIf(notEquals(iifNull(stgfilm@description,'NULL',stgfilm@description),iifNull(targetDimMovie@description,'NULL',targetDimMovie@description)))) ~> updateIf",
+				"updateIf sink(allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     input(",
+				"          film_id as integer,",
+				"          title as string,",
+				"          description as string",
+				"     ),",
+				"     deletable:false,",
+				"     insertable:false,",
+				"     updateable:true,",
+				"     upsertable:false,",
+				"     keys:['film_id'],",
+				"     format: 'table',",
+				"     batchSize: 100,",
+				"     skipDuplicateMapInputs: true,",
+				"     skipDuplicateMapOutputs: true,",
+				"     errorHandlingOption: 'stopOnFirstError',",
+				"     mapColumn(",
+				"          film_id = targetDimMovie@film_id,",
+				"          title = stgfilm@title,",
+				"          description = stgfilm@description",
+				"     )) ~> updateDimMovie",
+				"notExistsInsert sink(allowSchemaDrift: true,",
 				"     validateSchema: false,",
 				"     input(",
 				"          film_id as integer,",
@@ -77,9 +116,15 @@
 				"     updateable:false,",
 				"     upsertable:false,",
 				"     format: 'table',",
+				"     batchSize: 100,",
 				"     skipDuplicateMapInputs: true,",
 				"     skipDuplicateMapOutputs: true,",
-				"     errorHandlingOption: 'stopOnFirstError') ~> sink2"
+				"     errorHandlingOption: 'stopOnFirstError',",
+				"     mapColumn(",
+				"          film_id,",
+				"          title,",
+				"          description",
+				"     )) ~> insertDimMovie"
 			]
 		}
 	}
