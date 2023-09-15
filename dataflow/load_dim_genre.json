@@ -12,11 +12,40 @@
 					"name": "stggenre"
 				},
 				{
+					"dataset": {
+						"referenceName": "dim_genre",
+						"type": "DatasetReference"
+					},
 					"name": "targetdimgenre"
 				}
 			],
-			"sinks": [],
-			"transformations": [],
+			"sinks": [
+				{
+					"dataset": {
+						"referenceName": "dim_genre",
+						"type": "DatasetReference"
+					},
+					"name": "insertDimGenre"
+				},
+				{
+					"dataset": {
+						"referenceName": "dim_genre",
+						"type": "DatasetReference"
+					},
+					"name": "updateDimGenre"
+				}
+			],
+			"transformations": [
+				{
+					"name": "notExistsInsert"
+				},
+				{
+					"name": "existsUpdate"
+				},
+				{
+					"name": "updateIf"
+				}
+			],
 			"scriptLines": [
 				"source(output(",
 				"          genre_id as integer,",
@@ -26,8 +55,62 @@
 				"     validateSchema: false,",
 				"     isolationLevel: 'READ_UNCOMMITTED',",
 				"     format: 'table') ~> stggenre",
-				"source(allowSchemaDrift: true,",
-				"     validateSchema: false) ~> targetdimgenre"
+				"source(output(",
+				"          genre_id as integer,",
+				"          genre as string",
+				"     ),",
+				"     allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     isolationLevel: 'READ_UNCOMMITTED',",
+				"     format: 'table') ~> targetdimgenre",
+				"stggenre, targetdimgenre exists(stggenre@genre_id == targetdimgenre@genre_id,",
+				"     negate:true,",
+				"     broadcast: 'auto')~> notExistsInsert",
+				"stggenre, targetdimgenre join(stggenre@genre_id == targetdimgenre@genre_id,",
+				"     joinType:'inner',",
+				"     matchType:'exact',",
+				"     ignoreSpaces: false,",
+				"     broadcast: 'auto')~> existsUpdate",
+				"existsUpdate alterRow(updateIf(notEquals(iifNull(stggenre@genre,'NULL',stggenre@genre),iifNull(targetdimgenre@genre,'NULL',targetdimgenre@genre)))) ~> updateIf",
+				"notExistsInsert sink(allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     input(",
+				"          genre_id as integer,",
+				"          genre as string",
+				"     ),",
+				"     deletable:false,",
+				"     insertable:true,",
+				"     updateable:false,",
+				"     upsertable:false,",
+				"     format: 'table',",
+				"     batchSize: 100,",
+				"     skipDuplicateMapInputs: true,",
+				"     skipDuplicateMapOutputs: true,",
+				"     errorHandlingOption: 'stopOnFirstError',",
+				"     mapColumn(",
+				"          genre_id,",
+				"          genre",
+				"     )) ~> insertDimGenre",
+				"updateIf sink(allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     input(",
+				"          genre_id as integer,",
+				"          genre as string",
+				"     ),",
+				"     deletable:false,",
+				"     insertable:false,",
+				"     updateable:true,",
+				"     upsertable:false,",
+				"     keys:['genre_id'],",
+				"     format: 'table',",
+				"     batchSize: 100,",
+				"     skipDuplicateMapInputs: true,",
+				"     skipDuplicateMapOutputs: true,",
+				"     errorHandlingOption: 'stopOnFirstError',",
+				"     mapColumn(",
+				"          genre_id = stggenre@genre_id,",
+				"          genre = stggenre@genre",
+				"     )) ~> updateDimGenre"
 			]
 		}
 	}
