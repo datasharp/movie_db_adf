@@ -13,6 +13,38 @@
 	},
 	"resources": [
 		{
+			"name": "[concat(parameters('factoryName'), '/stg_genre')]",
+			"type": "Microsoft.DataFactory/factories/datasets",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"linkedServiceName": {
+					"referenceName": "AzureSqlDatabase1",
+					"type": "LinkedServiceReference"
+				},
+				"folder": {
+					"name": "02 stg and map"
+				},
+				"annotations": [],
+				"type": "AzureSqlTable",
+				"schema": [
+					{
+						"name": "genre_id",
+						"type": "int",
+						"precision": 10
+					},
+					{
+						"name": "genre",
+						"type": "nvarchar"
+					}
+				],
+				"typeProperties": {
+					"schema": "dbo",
+					"table": "stg_genre"
+				}
+			},
+			"dependsOn": []
+		},
+		{
 			"name": "[concat(parameters('factoryName'), '/stg_genre_film_assoc')]",
 			"type": "Microsoft.DataFactory/factories/datasets",
 			"apiVersion": "2018-06-01",
@@ -206,6 +238,132 @@
 			"dependsOn": []
 		},
 		{
+			"name": "[concat(parameters('factoryName'), '/load_dim_actor_movie_assoc')]",
+			"type": "Microsoft.DataFactory/factories/dataflows",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"type": "MappingDataFlow",
+				"typeProperties": {
+					"sources": [
+						{
+							"dataset": {
+								"referenceName": "stg_actor_film_assoc",
+								"type": "DatasetReference"
+							},
+							"name": "stgactorfilmassoc"
+						},
+						{
+							"dataset": {
+								"referenceName": "dim_actor_movie_assoc",
+								"type": "DatasetReference"
+							},
+							"name": "targetdimactorfilmassoc"
+						}
+					],
+					"sinks": [
+						{
+							"dataset": {
+								"referenceName": "dim_actor_movie_assoc",
+								"type": "DatasetReference"
+							},
+							"name": "sinkDimActorFilmAssoc"
+						},
+						{
+							"dataset": {
+								"referenceName": "dim_actor_movie_assoc",
+								"type": "DatasetReference"
+							},
+							"name": "updateDimActorFilmAssoc"
+						}
+					],
+					"transformations": [
+						{
+							"name": "notExistsInsert"
+						},
+						{
+							"name": "existsUpdate"
+						},
+						{
+							"name": "updateIf"
+						}
+					],
+					"scriptLines": [
+						"source(output(",
+						"          stg_actor_film_id as integer,",
+						"          actor_id as integer,",
+						"          film_id as integer",
+						"     ),",
+						"     allowSchemaDrift: true,",
+						"     validateSchema: false,",
+						"     isolationLevel: 'READ_UNCOMMITTED',",
+						"     format: 'table') ~> stgactorfilmassoc",
+						"source(output(",
+						"          dim_actor_movie_assoc_id as integer,",
+						"          actor_id as integer,",
+						"          film_id as integer",
+						"     ),",
+						"     allowSchemaDrift: true,",
+						"     validateSchema: false,",
+						"     isolationLevel: 'READ_UNCOMMITTED',",
+						"     format: 'table') ~> targetdimactorfilmassoc",
+						"stgactorfilmassoc, targetdimactorfilmassoc exists(stg_actor_film_id == dim_actor_movie_assoc_id,",
+						"     negate:true,",
+						"     broadcast: 'auto')~> notExistsInsert",
+						"stgactorfilmassoc, targetdimactorfilmassoc join(stg_actor_film_id == dim_actor_movie_assoc_id,",
+						"     joinType:'inner',",
+						"     matchType:'exact',",
+						"     ignoreSpaces: false,",
+						"     broadcast: 'auto')~> existsUpdate",
+						"existsUpdate alterRow(updateIf(notEquals(iifNull(stgactorfilmassoc@actor_id,-1,stgactorfilmassoc@actor_id),iifNull(targetdimactorfilmassoc@actor_id,-1,targetdimactorfilmassoc@actor_id)))) ~> updateIf",
+						"notExistsInsert sink(allowSchemaDrift: true,",
+						"     validateSchema: false,",
+						"     input(",
+						"          dim_actor_movie_assoc_id as integer,",
+						"          actor_id as integer,",
+						"          film_id as integer",
+						"     ),",
+						"     deletable:false,",
+						"     insertable:true,",
+						"     updateable:false,",
+						"     upsertable:false,",
+						"     format: 'table',",
+						"     batchSize: 100,",
+						"     skipDuplicateMapInputs: true,",
+						"     skipDuplicateMapOutputs: true,",
+						"     errorHandlingOption: 'stopOnFirstError',",
+						"     mapColumn(",
+						"          dim_actor_movie_assoc_id = stg_actor_film_id,",
+						"          actor_id,",
+						"          film_id",
+						"     )) ~> sinkDimActorFilmAssoc",
+						"updateIf sink(allowSchemaDrift: true,",
+						"     validateSchema: false,",
+						"     input(",
+						"          dim_actor_movie_assoc_id as integer,",
+						"          actor_id as integer,",
+						"          film_id as integer",
+						"     ),",
+						"     deletable:false,",
+						"     insertable:false,",
+						"     updateable:true,",
+						"     upsertable:false,",
+						"     keys:['dim_actor_movie_assoc_id'],",
+						"     format: 'table',",
+						"     batchSize: 100,",
+						"     skipDuplicateMapInputs: true,",
+						"     skipDuplicateMapOutputs: true,",
+						"     errorHandlingOption: 'stopOnFirstError',",
+						"     mapColumn(",
+						"          dim_actor_movie_assoc_id,",
+						"          actor_id = stgactorfilmassoc@actor_id,",
+						"          film_id = stgactorfilmassoc@film_id",
+						"     )) ~> updateDimActorFilmAssoc"
+					]
+				}
+			},
+			"dependsOn": []
+		},
+		{
 			"name": "[concat(parameters('factoryName'), '/load_dim_dir')]",
 			"type": "Microsoft.DataFactory/factories/dataflows",
 			"apiVersion": "2018-06-01",
@@ -264,6 +422,128 @@
 			"dependsOn": []
 		},
 		{
+			"name": "[concat(parameters('factoryName'), '/load_dim_genre')]",
+			"type": "Microsoft.DataFactory/factories/dataflows",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"type": "MappingDataFlow",
+				"typeProperties": {
+					"sources": [
+						{
+							"dataset": {
+								"referenceName": "stg_genre",
+								"type": "DatasetReference"
+							},
+							"name": "stggenre"
+						},
+						{
+							"dataset": {
+								"referenceName": "dim_genre",
+								"type": "DatasetReference"
+							},
+							"name": "targetdimgenre"
+						}
+					],
+					"sinks": [
+						{
+							"dataset": {
+								"referenceName": "dim_genre",
+								"type": "DatasetReference"
+							},
+							"name": "insertDimGenre"
+						},
+						{
+							"dataset": {
+								"referenceName": "dim_genre",
+								"type": "DatasetReference"
+							},
+							"name": "updateDimGenre"
+						}
+					],
+					"transformations": [
+						{
+							"name": "notExistsInsert"
+						},
+						{
+							"name": "existsUpdate"
+						},
+						{
+							"name": "updateIf"
+						}
+					],
+					"scriptLines": [
+						"source(output(",
+						"          genre_id as integer,",
+						"          genre as string",
+						"     ),",
+						"     allowSchemaDrift: true,",
+						"     validateSchema: false,",
+						"     isolationLevel: 'READ_UNCOMMITTED',",
+						"     format: 'table') ~> stggenre",
+						"source(output(",
+						"          genre_id as integer,",
+						"          genre as string",
+						"     ),",
+						"     allowSchemaDrift: true,",
+						"     validateSchema: false,",
+						"     isolationLevel: 'READ_UNCOMMITTED',",
+						"     format: 'table') ~> targetdimgenre",
+						"stggenre, targetdimgenre exists(stggenre@genre_id == targetdimgenre@genre_id,",
+						"     negate:true,",
+						"     broadcast: 'auto')~> notExistsInsert",
+						"stggenre, targetdimgenre join(stggenre@genre_id == targetdimgenre@genre_id,",
+						"     joinType:'inner',",
+						"     matchType:'exact',",
+						"     ignoreSpaces: false,",
+						"     broadcast: 'auto')~> existsUpdate",
+						"existsUpdate alterRow(updateIf(notEquals(iifNull(stggenre@genre,'NULL',stggenre@genre),iifNull(targetdimgenre@genre,'NULL',targetdimgenre@genre)))) ~> updateIf",
+						"notExistsInsert sink(allowSchemaDrift: true,",
+						"     validateSchema: false,",
+						"     input(",
+						"          genre_id as integer,",
+						"          genre as string",
+						"     ),",
+						"     deletable:false,",
+						"     insertable:true,",
+						"     updateable:false,",
+						"     upsertable:false,",
+						"     format: 'table',",
+						"     batchSize: 100,",
+						"     skipDuplicateMapInputs: true,",
+						"     skipDuplicateMapOutputs: true,",
+						"     errorHandlingOption: 'stopOnFirstError',",
+						"     mapColumn(",
+						"          genre_id,",
+						"          genre",
+						"     )) ~> insertDimGenre",
+						"updateIf sink(allowSchemaDrift: true,",
+						"     validateSchema: false,",
+						"     input(",
+						"          genre_id as integer,",
+						"          genre as string",
+						"     ),",
+						"     deletable:false,",
+						"     insertable:false,",
+						"     updateable:true,",
+						"     upsertable:false,",
+						"     keys:['genre_id'],",
+						"     format: 'table',",
+						"     batchSize: 100,",
+						"     skipDuplicateMapInputs: true,",
+						"     skipDuplicateMapOutputs: true,",
+						"     errorHandlingOption: 'stopOnFirstError',",
+						"     mapColumn(",
+						"          genre_id = stggenre@genre_id,",
+						"          genre = stggenre@genre",
+						"     )) ~> updateDimGenre"
+					]
+				}
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/datasets/stg_genre')]"
+			]
+		},
+		{
 			"name": "[concat(parameters('factoryName'), '/load_dim_genre_movie_assoc')]",
 			"type": "Microsoft.DataFactory/factories/dataflows",
 			"apiVersion": "2018-06-01",
@@ -277,6 +557,13 @@
 								"type": "DatasetReference"
 							},
 							"name": "stggenrefilmassoc"
+						},
+						{
+							"dataset": {
+								"referenceName": "dim_genre_movie_assoc",
+								"type": "DatasetReference"
+							},
+							"name": "targetDimGenreFilmAssoc"
 						}
 					],
 					"sinks": [
@@ -285,10 +572,27 @@
 								"referenceName": "dim_genre_movie_assoc",
 								"type": "DatasetReference"
 							},
-							"name": "sink1"
+							"name": "insertDimGenreFilmAssoc"
+						},
+						{
+							"dataset": {
+								"referenceName": "dim_genre_movie_assoc",
+								"type": "DatasetReference"
+							},
+							"name": "updateDimGenreFilmAssoc"
 						}
 					],
-					"transformations": [],
+					"transformations": [
+						{
+							"name": "notExistsInsert"
+						},
+						{
+							"name": "existsUpdate"
+						},
+						{
+							"name": "updateIf"
+						}
+					],
 					"scriptLines": [
 						"source(output(",
 						"          stg_genre_film_id as integer,",
@@ -299,7 +603,26 @@
 						"     validateSchema: false,",
 						"     isolationLevel: 'READ_UNCOMMITTED',",
 						"     format: 'table') ~> stggenrefilmassoc",
-						"stggenrefilmassoc sink(allowSchemaDrift: true,",
+						"source(output(",
+						"          dim_genre_movie_assoc_id as integer,",
+						"          genre_id as integer,",
+						"          film_id as integer",
+						"     ),",
+						"     allowSchemaDrift: true,",
+						"     validateSchema: false,",
+						"     isolationLevel: 'READ_UNCOMMITTED',",
+						"     format: 'table') ~> targetDimGenreFilmAssoc",
+						"stggenrefilmassoc, targetDimGenreFilmAssoc exists(stg_genre_film_id == dim_genre_movie_assoc_id,",
+						"     negate:true,",
+						"     broadcast: 'auto')~> notExistsInsert",
+						"stggenrefilmassoc, targetDimGenreFilmAssoc join(stg_genre_film_id == dim_genre_movie_assoc_id,",
+						"     joinType:'inner',",
+						"     matchType:'exact',",
+						"     ignoreSpaces: false,",
+						"     broadcast: 'auto')~> existsUpdate",
+						"existsUpdate alterRow(updateIf(notEquals(iifNull(stggenrefilmassoc@genre_id,-1,stggenrefilmassoc@genre_id),iifNull(targetDimGenreFilmAssoc@genre_id,-1,targetDimGenreFilmAssoc@genre_id))),",
+						"     updateIf(notEquals(iifNull(stggenrefilmassoc@film_id,-1,stggenrefilmassoc@film_id),iifNull(targetDimGenreFilmAssoc@film_id,-1,targetDimGenreFilmAssoc@film_id)))) ~> updateIf",
+						"notExistsInsert sink(allowSchemaDrift: true,",
 						"     validateSchema: false,",
 						"     input(",
 						"          dim_genre_movie_assoc_id as integer,",
@@ -311,6 +634,7 @@
 						"     updateable:false,",
 						"     upsertable:false,",
 						"     format: 'table',",
+						"     batchSize: 100,",
 						"     skipDuplicateMapInputs: true,",
 						"     skipDuplicateMapOutputs: true,",
 						"     errorHandlingOption: 'stopOnFirstError',",
@@ -318,7 +642,28 @@
 						"          dim_genre_movie_assoc_id = stg_genre_film_id,",
 						"          genre_id,",
 						"          film_id",
-						"     )) ~> sink1"
+						"     )) ~> insertDimGenreFilmAssoc",
+						"updateIf sink(allowSchemaDrift: true,",
+						"     validateSchema: false,",
+						"     input(",
+						"          dim_genre_movie_assoc_id as integer,",
+						"          genre_id as integer,",
+						"          film_id as integer",
+						"     ),",
+						"     deletable:false,",
+						"     insertable:false,",
+						"     updateable:true,",
+						"     upsertable:false,",
+						"     keys:['dim_genre_movie_assoc_id'],",
+						"     format: 'table',",
+						"     skipDuplicateMapInputs: true,",
+						"     skipDuplicateMapOutputs: true,",
+						"     errorHandlingOption: 'stopOnFirstError',",
+						"     mapColumn(",
+						"          dim_genre_movie_assoc_id,",
+						"          genre_id = stggenrefilmassoc@genre_id,",
+						"          film_id = stggenrefilmassoc@film_id",
+						"     )) ~> updateDimGenreFilmAssoc"
 					]
 				}
 			},
@@ -410,131 +755,6 @@
 						"     skipDuplicateMapInputs: true,",
 						"     skipDuplicateMapOutputs: true,",
 						"     errorHandlingOption: 'stopOnFirstError') ~> sink2"
-					]
-				}
-			},
-			"dependsOn": []
-		},
-		{
-			"name": "[concat(parameters('factoryName'), '/load_dim_actor_movie_assoc')]",
-			"type": "Microsoft.DataFactory/factories/dataflows",
-			"apiVersion": "2018-06-01",
-			"properties": {
-				"type": "MappingDataFlow",
-				"typeProperties": {
-					"sources": [
-						{
-							"dataset": {
-								"referenceName": "stg_actor_film_assoc",
-								"type": "DatasetReference"
-							},
-							"name": "stgactorfilmassoc"
-						},
-						{
-							"dataset": {
-								"referenceName": "dim_actor_movie_assoc",
-								"type": "DatasetReference"
-							},
-							"name": "dimactorfilmassoc"
-						}
-					],
-					"sinks": [
-						{
-							"dataset": {
-								"referenceName": "dim_actor_movie_assoc",
-								"type": "DatasetReference"
-							},
-							"name": "sinkDimActorFilmAssoc"
-						},
-						{
-							"dataset": {
-								"referenceName": "dim_actor_movie_assoc",
-								"type": "DatasetReference"
-							},
-							"name": "updateDimActorFilmAssoc"
-						}
-					],
-					"transformations": [
-						{
-							"name": "notExistsInsert"
-						},
-						{
-							"name": "existsUpdate"
-						},
-						{
-							"name": "updateIf"
-						}
-					],
-					"scriptLines": [
-						"source(output(",
-						"          stg_actor_film_id as integer,",
-						"          actor_id as integer,",
-						"          film_id as integer",
-						"     ),",
-						"     allowSchemaDrift: true,",
-						"     validateSchema: false,",
-						"     isolationLevel: 'READ_UNCOMMITTED',",
-						"     format: 'table') ~> stgactorfilmassoc",
-						"source(output(",
-						"          dim_actor_movie_assoc_id as integer,",
-						"          actor_id as integer,",
-						"          film_id as integer",
-						"     ),",
-						"     allowSchemaDrift: true,",
-						"     validateSchema: false,",
-						"     isolationLevel: 'READ_UNCOMMITTED',",
-						"     format: 'table') ~> dimactorfilmassoc",
-						"stgactorfilmassoc, dimactorfilmassoc exists(stg_actor_film_id == dim_actor_movie_assoc_id,",
-						"     negate:true,",
-						"     broadcast: 'auto')~> notExistsInsert",
-						"stgactorfilmassoc, dimactorfilmassoc join(stg_actor_film_id == dim_actor_movie_assoc_id,",
-						"     joinType:'inner',",
-						"     matchType:'exact',",
-						"     ignoreSpaces: false,",
-						"     broadcast: 'auto')~> existsUpdate",
-						"existsUpdate alterRow(updateIf(notEquals(iifNull(stgactorfilmassoc@actor_id,-1,stgactorfilmassoc@actor_id),iifNull(dimactorfilmassoc@actor_id,-1,dimactorfilmassoc@actor_id)))) ~> updateIf",
-						"notExistsInsert sink(allowSchemaDrift: true,",
-						"     validateSchema: false,",
-						"     input(",
-						"          dim_actor_movie_assoc_id as integer,",
-						"          actor_id as integer,",
-						"          film_id as integer",
-						"     ),",
-						"     deletable:false,",
-						"     insertable:true,",
-						"     updateable:false,",
-						"     upsertable:false,",
-						"     format: 'table',",
-						"     batchSize: 100,",
-						"     skipDuplicateMapInputs: true,",
-						"     skipDuplicateMapOutputs: true,",
-						"     errorHandlingOption: 'stopOnFirstError',",
-						"     mapColumn(",
-						"          dim_actor_movie_assoc_id = stg_actor_film_id,",
-						"          actor_id,",
-						"          film_id",
-						"     )) ~> sinkDimActorFilmAssoc",
-						"updateIf sink(allowSchemaDrift: true,",
-						"     validateSchema: false,",
-						"     input(",
-						"          dim_actor_movie_assoc_id as integer,",
-						"          actor_id as integer,",
-						"          film_id as integer",
-						"     ),",
-						"     deletable:false,",
-						"     insertable:false,",
-						"     updateable:true,",
-						"     upsertable:false,",
-						"     keys:['dim_actor_movie_assoc_id'],",
-						"     format: 'table',",
-						"     skipDuplicateMapInputs: true,",
-						"     skipDuplicateMapOutputs: true,",
-						"     errorHandlingOption: 'stopOnFirstError',",
-						"     mapColumn(",
-						"          dim_actor_movie_assoc_id,",
-						"          actor_id = stgactorfilmassoc@actor_id,",
-						"          film_id = stgactorfilmassoc@film_id",
-						"     )) ~> updateDimActorFilmAssoc"
 					]
 				}
 			},
@@ -2058,12 +2278,12 @@
 								"referenceName": "stg_film",
 								"type": "DatasetReference"
 							},
-							"name": "loadintostgfilm"
+							"name": "insertStgFilm"
 						}
 					],
 					"transformations": [
 						{
-							"name": "join4"
+							"name": "joinMapFilm"
 						}
 					],
 					"scriptLines": [
@@ -2095,14 +2315,14 @@
 						"     validateSchema: false,",
 						"     isolationLevel: 'READ_UNCOMMITTED',",
 						"     format: 'table') ~> mapfilm",
-						"mapfilm, landingmovie join(mapfilm@title == landingmovie@Title",
-						"     && film_year == Year",
-						"     && mapfilm@director == landingmovie@Director,",
+						"landingmovie, mapfilm join(landingmovie@Title == mapfilm@title",
+						"     && landingmovie@Director == mapfilm@director",
+						"     && Year == film_year,",
 						"     joinType:'inner',",
 						"     matchType:'exact',",
 						"     ignoreSpaces: false,",
-						"     broadcast: 'auto')~> join4",
-						"join4 sink(allowSchemaDrift: true,",
+						"     broadcast: 'auto')~> joinMapFilm",
+						"joinMapFilm sink(allowSchemaDrift: true,",
 						"     validateSchema: false,",
 						"     input(",
 						"          film_id as integer,",
@@ -2120,7 +2340,9 @@
 						"     insertable:true,",
 						"     updateable:false,",
 						"     upsertable:false,",
+						"     truncate:true,",
 						"     format: 'table',",
+						"     batchSize: 100,",
 						"     skipDuplicateMapInputs: true,",
 						"     skipDuplicateMapOutputs: true,",
 						"     errorHandlingOption: 'stopOnFirstError',",
@@ -2135,315 +2357,11 @@
 						"          votes = Votes,",
 						"          revenue_millions = Revenue_Millions,",
 						"          metascore = Metascore",
-						"     )) ~> loadintostgfilm"
+						"     )) ~> insertStgFilm"
 					]
 				}
 			},
 			"dependsOn": []
-		},
-		{
-			"name": "[concat(parameters('factoryName'), '/load_stg_genre')]",
-			"type": "Microsoft.DataFactory/factories/dataflows",
-			"apiVersion": "2018-06-01",
-			"properties": {
-				"type": "MappingDataFlow",
-				"typeProperties": {
-					"sources": [
-						{
-							"dataset": {
-								"referenceName": "move_db_landing",
-								"type": "DatasetReference"
-							},
-							"name": "landingmovies"
-						},
-						{
-							"dataset": {
-								"referenceName": "map_genre",
-								"type": "DatasetReference"
-							},
-							"name": "mapgenre"
-						}
-					],
-					"sinks": [
-						{
-							"dataset": {
-								"referenceName": "stg_genre",
-								"type": "DatasetReference"
-							},
-							"name": "sinkStgGenre"
-						}
-					],
-					"transformations": [
-						{
-							"name": "splitGenre"
-						},
-						{
-							"name": "flattenGenre"
-						},
-						{
-							"name": "distinctGenre"
-						},
-						{
-							"name": "selectGenre"
-						},
-						{
-							"name": "trimGenre"
-						},
-						{
-							"name": "joinMapGenre"
-						},
-						{
-							"name": "selectGenreGenreId"
-						}
-					],
-					"scriptLines": [
-						"source(output(",
-						"          Rank as integer,",
-						"          Title as string,",
-						"          Genre as string,",
-						"          Description as string,",
-						"          Director as string,",
-						"          Actors as string,",
-						"          Year as integer,",
-						"          Runtime_Minutes as integer,",
-						"          Rating as double,",
-						"          Votes as integer,",
-						"          Revenue_Millions as double,",
-						"          Metascore as integer",
-						"     ),",
-						"     allowSchemaDrift: true,",
-						"     validateSchema: false,",
-						"     isolationLevel: 'READ_UNCOMMITTED',",
-						"     format: 'table') ~> landingmovies",
-						"source(output(",
-						"          genre_id as integer,",
-						"          genre as string",
-						"     ),",
-						"     allowSchemaDrift: true,",
-						"     validateSchema: false,",
-						"     isolationLevel: 'READ_UNCOMMITTED',",
-						"     format: 'table') ~> mapgenre",
-						"landingmovies derive(Genre = split(Genre, ',')) ~> splitGenre",
-						"splitGenre foldDown(unroll(Genre),",
-						"     mapColumn(",
-						"          Rank,",
-						"          Title,",
-						"          Genre,",
-						"          Description,",
-						"          Director,",
-						"          Actors,",
-						"          Year,",
-						"          {Runtime (Minutes)} = Runtime_Minutes,",
-						"          Rating,",
-						"          Votes,",
-						"          {Revenue (Millions)} = Revenue_Millions,",
-						"          Metascore",
-						"     ),",
-						"     skipDuplicateMapInputs: false,",
-						"     skipDuplicateMapOutputs: false) ~> flattenGenre",
-						"trimGenre aggregate(groupBy(Genre),",
-						"     each(match(name=='Rank'), $$ = first($$))) ~> distinctGenre",
-						"distinctGenre select(mapColumn(",
-						"          Genre",
-						"     ),",
-						"     skipDuplicateMapInputs: true,",
-						"     skipDuplicateMapOutputs: true) ~> selectGenre",
-						"flattenGenre derive(Genre = trim(Genre)) ~> trimGenre",
-						"selectGenre, mapgenre join(selectGenre@Genre == mapgenre@genre,",
-						"     joinType:'inner',",
-						"     matchType:'exact',",
-						"     ignoreSpaces: false,",
-						"     broadcast: 'auto')~> joinMapGenre",
-						"joinMapGenre select(mapColumn(",
-						"          Genre = selectGenre@Genre,",
-						"          genre_id",
-						"     ),",
-						"     skipDuplicateMapInputs: true,",
-						"     skipDuplicateMapOutputs: true) ~> selectGenreGenreId",
-						"selectGenreGenreId sink(allowSchemaDrift: true,",
-						"     validateSchema: false,",
-						"     input(",
-						"          genre_id as integer,",
-						"          genre as string",
-						"     ),",
-						"     deletable:false,",
-						"     insertable:true,",
-						"     updateable:false,",
-						"     upsertable:false,",
-						"     truncate:true,",
-						"     format: 'table',",
-						"     batchSize: 100,",
-						"     skipDuplicateMapInputs: true,",
-						"     skipDuplicateMapOutputs: true,",
-						"     errorHandlingOption: 'stopOnFirstError',",
-						"     mapColumn(",
-						"          genre_id,",
-						"          genre = Genre",
-						"     )) ~> sinkStgGenre"
-					]
-				}
-			},
-			"dependsOn": []
-		},
-		{
-			"name": "[concat(parameters('factoryName'), '/load_stg_genre_film_assoc')]",
-			"type": "Microsoft.DataFactory/factories/dataflows",
-			"apiVersion": "2018-06-01",
-			"properties": {
-				"type": "MappingDataFlow",
-				"typeProperties": {
-					"sources": [
-						{
-							"dataset": {
-								"referenceName": "move_db_landing",
-								"type": "DatasetReference"
-							},
-							"name": "landmovies"
-						},
-						{
-							"dataset": {
-								"referenceName": "map_genre",
-								"type": "DatasetReference"
-							},
-							"name": "mapgenre"
-						},
-						{
-							"dataset": {
-								"referenceName": "map_film",
-								"type": "DatasetReference"
-							},
-							"name": "mapfilm"
-						}
-					],
-					"sinks": [
-						{
-							"dataset": {
-								"referenceName": "stg_genre_film_assoc",
-								"type": "DatasetReference"
-							},
-							"name": "sinkStgGenreFilmAssoc"
-						}
-					],
-					"transformations": [
-						{
-							"name": "splitGenre"
-						},
-						{
-							"name": "flattenGenre"
-						},
-						{
-							"name": "trimGenre"
-						},
-						{
-							"name": "joinMapFilm"
-						},
-						{
-							"name": "joinMapGenre"
-						},
-						{
-							"name": "selectFilmIdGenreId"
-						}
-					],
-					"scriptLines": [
-						"source(output(",
-						"          Rank as integer,",
-						"          Title as string,",
-						"          Genre as string,",
-						"          Description as string,",
-						"          Director as string,",
-						"          Actors as string,",
-						"          Year as integer,",
-						"          Runtime_Minutes as integer,",
-						"          Rating as double,",
-						"          Votes as integer,",
-						"          Revenue_Millions as double,",
-						"          Metascore as integer",
-						"     ),",
-						"     allowSchemaDrift: true,",
-						"     validateSchema: false,",
-						"     isolationLevel: 'READ_UNCOMMITTED',",
-						"     format: 'table') ~> landmovies",
-						"source(output(",
-						"          genre_id as integer,",
-						"          genre as string",
-						"     ),",
-						"     allowSchemaDrift: true,",
-						"     validateSchema: false,",
-						"     isolationLevel: 'READ_UNCOMMITTED',",
-						"     format: 'table') ~> mapgenre",
-						"source(output(",
-						"          film_id as integer,",
-						"          title as string,",
-						"          film_year as integer,",
-						"          director as string",
-						"     ),",
-						"     allowSchemaDrift: true,",
-						"     validateSchema: false,",
-						"     isolationLevel: 'READ_UNCOMMITTED',",
-						"     format: 'table') ~> mapfilm",
-						"landmovies derive(Genre = split(Genre, ',')) ~> splitGenre",
-						"splitGenre foldDown(unroll(Genre),",
-						"     mapColumn(",
-						"          Rank,",
-						"          Title,",
-						"          Genre,",
-						"          Description,",
-						"          Director,",
-						"          Actors,",
-						"          Year,",
-						"          {Runtime (Minutes)} = Runtime_Minutes,",
-						"          Rating,",
-						"          Votes,",
-						"          {Revenue (Millions)} = Revenue_Millions,",
-						"          Metascore",
-						"     ),",
-						"     skipDuplicateMapInputs: false,",
-						"     skipDuplicateMapOutputs: false) ~> flattenGenre",
-						"flattenGenre derive(Genre = trim(Genre)) ~> trimGenre",
-						"trimGenre, mapfilm join(flattenGenre@Director == mapfilm@director",
-						"     && flattenGenre@Title == mapfilm@title,",
-						"     joinType:'inner',",
-						"     matchType:'exact',",
-						"     ignoreSpaces: false,",
-						"     broadcast: 'auto')~> joinMapFilm",
-						"joinMapFilm, mapgenre join(trimGenre@Genre == mapgenre@genre,",
-						"     joinType:'inner',",
-						"     matchType:'exact',",
-						"     ignoreSpaces: false,",
-						"     broadcast: 'auto')~> joinMapGenre",
-						"joinMapGenre select(mapColumn(",
-						"          film_id,",
-						"          genre_id",
-						"     ),",
-						"     skipDuplicateMapInputs: true,",
-						"     skipDuplicateMapOutputs: true) ~> selectFilmIdGenreId",
-						"selectFilmIdGenreId sink(allowSchemaDrift: true,",
-						"     validateSchema: false,",
-						"     input(",
-						"          stg_genre_film_id as integer,",
-						"          genre_id as integer,",
-						"          film_id as integer",
-						"     ),",
-						"     deletable:false,",
-						"     insertable:true,",
-						"     updateable:false,",
-						"     upsertable:false,",
-						"     truncate:true,",
-						"     format: 'table',",
-						"     batchSize: 100,",
-						"     skipDuplicateMapInputs: true,",
-						"     skipDuplicateMapOutputs: true,",
-						"     errorHandlingOption: 'stopOnFirstError',",
-						"     mapColumn(",
-						"          genre_id,",
-						"          film_id",
-						"     )) ~> sinkStgGenreFilmAssoc"
-					]
-				}
-			},
-			"dependsOn": [
-				"[concat(variables('factoryId'), '/datasets/stg_genre_film_assoc')]"
-			]
 		}
 	]
 }
