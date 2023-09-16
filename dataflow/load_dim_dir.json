@@ -10,6 +10,13 @@
 						"type": "DatasetReference"
 					},
 					"name": "mapdir"
+				},
+				{
+					"dataset": {
+						"referenceName": "dim_dir",
+						"type": "DatasetReference"
+					},
+					"name": "targetDimDir"
 				}
 			],
 			"sinks": [
@@ -18,10 +25,27 @@
 						"referenceName": "dim_dir",
 						"type": "DatasetReference"
 					},
-					"name": "sink1"
+					"name": "insertDimDir"
+				},
+				{
+					"dataset": {
+						"referenceName": "dim_dir",
+						"type": "DatasetReference"
+					},
+					"name": "updateDimDir"
 				}
 			],
-			"transformations": [],
+			"transformations": [
+				{
+					"name": "notExistsInsert"
+				},
+				{
+					"name": "existsUpdate"
+				},
+				{
+					"name": "updateIf"
+				}
+			],
 			"scriptLines": [
 				"source(output(",
 				"          director_id as integer,",
@@ -31,7 +55,43 @@
 				"     validateSchema: false,",
 				"     isolationLevel: 'READ_UNCOMMITTED',",
 				"     format: 'table') ~> mapdir",
-				"mapdir sink(allowSchemaDrift: true,",
+				"source(output(",
+				"          director_id as integer,",
+				"          director as string",
+				"     ),",
+				"     allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     isolationLevel: 'READ_UNCOMMITTED',",
+				"     format: 'table') ~> targetDimDir",
+				"mapdir, targetDimDir exists(mapdir@director_id == targetDimDir@director_id,",
+				"     negate:true,",
+				"     broadcast: 'auto')~> notExistsInsert",
+				"mapdir, targetDimDir join(mapdir@director_id == targetDimDir@director_id,",
+				"     joinType:'inner',",
+				"     matchType:'exact',",
+				"     ignoreSpaces: false,",
+				"     broadcast: 'auto')~> existsUpdate",
+				"existsUpdate alterRow(updateIf(notEquals(iifNull(mapdir@director,'NULL',mapdir@director),iifNull(targetDimDir@director,'NULL',targetDimDir@director)))) ~> updateIf",
+				"notExistsInsert sink(allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     input(",
+				"          director_id as integer,",
+				"          director as string",
+				"     ),",
+				"     deletable:false,",
+				"     insertable:true,",
+				"     updateable:false,",
+				"     upsertable:false,",
+				"     format: 'table',",
+				"     batchSize: 100,",
+				"     skipDuplicateMapInputs: true,",
+				"     skipDuplicateMapOutputs: true,",
+				"     errorHandlingOption: 'stopOnFirstError',",
+				"     mapColumn(",
+				"          director_id,",
+				"          director",
+				"     )) ~> insertDimDir",
+				"updateIf sink(allowSchemaDrift: true,",
 				"     validateSchema: false,",
 				"     input(",
 				"          director_id as integer,",
@@ -44,11 +104,7 @@
 				"     format: 'table',",
 				"     skipDuplicateMapInputs: true,",
 				"     skipDuplicateMapOutputs: true,",
-				"     errorHandlingOption: 'stopOnFirstError',",
-				"     mapColumn(",
-				"          director_id,",
-				"          director",
-				"     )) ~> sink1"
+				"     errorHandlingOption: 'stopOnFirstError') ~> updateDimDir"
 			]
 		}
 	}
