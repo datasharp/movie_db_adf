@@ -13,10 +13,10 @@
 				},
 				{
 					"dataset": {
-						"referenceName": "stg_film",
+						"referenceName": "dim_year",
 						"type": "DatasetReference"
 					},
-					"name": "stgfilm"
+					"name": "targetDimYear"
 				}
 			],
 			"sinks": [
@@ -26,14 +26,31 @@
 						"type": "DatasetReference"
 					},
 					"name": "sink1"
+				},
+				{
+					"dataset": {
+						"referenceName": "dim_year",
+						"type": "DatasetReference"
+					},
+					"name": "insertDimYear"
+				},
+				{
+					"dataset": {
+						"referenceName": "dim_year",
+						"type": "DatasetReference"
+					},
+					"name": "updateDimYear"
 				}
 			],
 			"transformations": [
 				{
-					"name": "join1"
+					"name": "notExistsInsert"
 				},
 				{
-					"name": "select1"
+					"name": "existsUpdate"
+				},
+				{
+					"name": "updateIf"
 				}
 			],
 			"scriptLines": [
@@ -46,33 +63,23 @@
 				"     isolationLevel: 'READ_UNCOMMITTED',",
 				"     format: 'table') ~> mapyear",
 				"source(output(",
-				"          film_id as integer,",
-				"          title as string,",
-				"          description as string,",
-				"          director as string,",
-				"          film_year as integer,",
-				"          runtime_minutes as integer,",
-				"          rating as double,",
-				"          votes as integer,",
-				"          revenue_millions as double,",
-				"          metascore as integer",
+				"          date_id as integer,",
+				"          year as integer",
 				"     ),",
 				"     allowSchemaDrift: true,",
 				"     validateSchema: false,",
 				"     isolationLevel: 'READ_UNCOMMITTED',",
-				"     format: 'table') ~> stgfilm",
-				"stgfilm, mapyear join(film_year == year,",
+				"     format: 'table') ~> targetDimYear",
+				"mapyear, targetDimYear exists(year_id == date_id,",
+				"     negate:true,",
+				"     broadcast: 'auto')~> notExistsInsert",
+				"mapyear, targetDimYear join(year_id == date_id,",
 				"     joinType:'inner',",
 				"     matchType:'exact',",
 				"     ignoreSpaces: false,",
-				"     broadcast: 'auto')~> join1",
-				"join1 select(mapColumn(",
-				"          year_id,",
-				"          film_year",
-				"     ),",
-				"     skipDuplicateMapInputs: true,",
-				"     skipDuplicateMapOutputs: true) ~> select1",
-				"select1 sink(allowSchemaDrift: true,",
+				"     broadcast: 'auto')~> existsUpdate",
+				"existsUpdate alterRow(updateIf(notEquals(iifNull(mapyear@year,-1,mapyear@year),iifNull(targetDimYear@year,-1,targetDimYear@year)))) ~> updateIf",
+				" sink(allowSchemaDrift: true,",
 				"     validateSchema: false,",
 				"     input(",
 				"          date_id as integer,",
@@ -89,7 +96,44 @@
 				"     mapColumn(",
 				"          date_id = year_id,",
 				"          year = film_year",
-				"     )) ~> sink1"
+				"     )) ~> sink1",
+				"notExistsInsert sink(allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     input(",
+				"          date_id as integer,",
+				"          year as integer",
+				"     ),",
+				"     deletable:false,",
+				"     insertable:true,",
+				"     updateable:false,",
+				"     upsertable:false,",
+				"     format: 'table',",
+				"     skipDuplicateMapInputs: true,",
+				"     skipDuplicateMapOutputs: true,",
+				"     errorHandlingOption: 'stopOnFirstError',",
+				"     mapColumn(",
+				"          date_id = year_id,",
+				"          year",
+				"     )) ~> insertDimYear",
+				"updateIf sink(allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     input(",
+				"          date_id as integer,",
+				"          year as integer",
+				"     ),",
+				"     deletable:false,",
+				"     insertable:false,",
+				"     updateable:true,",
+				"     upsertable:false,",
+				"     keys:['year'],",
+				"     format: 'table',",
+				"     skipDuplicateMapInputs: true,",
+				"     skipDuplicateMapOutputs: true,",
+				"     errorHandlingOption: 'stopOnFirstError',",
+				"     mapColumn(",
+				"          date_id = targetDimYear@year,",
+				"          year = mapyear@year",
+				"     )) ~> updateDimYear"
 			]
 		}
 	}
