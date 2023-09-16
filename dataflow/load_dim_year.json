@@ -25,13 +25,6 @@
 						"referenceName": "dim_year",
 						"type": "DatasetReference"
 					},
-					"name": "sink1"
-				},
-				{
-					"dataset": {
-						"referenceName": "dim_year",
-						"type": "DatasetReference"
-					},
 					"name": "insertDimYear"
 				},
 				{
@@ -79,24 +72,6 @@
 				"     ignoreSpaces: false,",
 				"     broadcast: 'auto')~> existsUpdate",
 				"existsUpdate alterRow(updateIf(notEquals(iifNull(mapyear@year,-1,mapyear@year),iifNull(targetDimYear@year,-1,targetDimYear@year)))) ~> updateIf",
-				" sink(allowSchemaDrift: true,",
-				"     validateSchema: false,",
-				"     input(",
-				"          date_id as integer,",
-				"          year as integer",
-				"     ),",
-				"     deletable:false,",
-				"     insertable:true,",
-				"     updateable:false,",
-				"     upsertable:false,",
-				"     format: 'table',",
-				"     skipDuplicateMapInputs: true,",
-				"     skipDuplicateMapOutputs: true,",
-				"     errorHandlingOption: 'stopOnFirstError',",
-				"     mapColumn(",
-				"          date_id = year_id,",
-				"          year = film_year",
-				"     )) ~> sink1",
 				"notExistsInsert sink(allowSchemaDrift: true,",
 				"     validateSchema: false,",
 				"     input(",
