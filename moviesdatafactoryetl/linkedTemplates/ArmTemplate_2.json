@@ -385,8 +385,9 @@
 								"parameters": {},
 								"datasetParameters": {
 									"stgfilm": {},
-									"mapfilm": {},
-									"sink2": {}
+									"targetDimMovie": {},
+									"updateDimMovie": {},
+									"insertDimMovie": {}
 								}
 							},
 							"staging": {},
@@ -512,7 +513,9 @@
 								"parameters": {},
 								"datasetParameters": {
 									"mapdir": {},
-									"sink1": {}
+									"targetDimDir": {},
+									"insertDimDir": {},
+									"updateDimDir": {}
 								}
 							},
 							"staging": {},
@@ -542,8 +545,9 @@
 								"parameters": {},
 								"datasetParameters": {
 									"mapyear": {},
-									"stgfilm": {},
-									"sink1": {}
+									"targetDimYear": {},
+									"insertDimYear": {},
+									"updateDimYear": {}
 								}
 							},
 							"staging": {},

@@ -93,8 +93,9 @@
 								"parameters": {},
 								"datasetParameters": {
 									"stgfilm": {},
-									"mapfilm": {},
-									"sink2": {}
+									"targetDimMovie": {},
+									"updateDimMovie": {},
+									"insertDimMovie": {}
 								}
 							},
 							"staging": {},
@@ -220,7 +221,9 @@
 								"parameters": {},
 								"datasetParameters": {
 									"mapdir": {},
-									"sink1": {}
+									"targetDimDir": {},
+									"insertDimDir": {},
+									"updateDimDir": {}
 								}
 							},
 							"staging": {},
@@ -250,8 +253,9 @@
 								"parameters": {},
 								"datasetParameters": {
 									"mapyear": {},
-									"stgfilm": {},
-									"sink1": {}
+									"targetDimYear": {},
+									"insertDimYear": {},
+									"updateDimYear": {}
 								}
 							},
 							"staging": {},
@@ -1950,6 +1954,13 @@
 								"type": "DatasetReference"
 							},
 							"name": "mapdir"
+						},
+						{
+							"dataset": {
+								"referenceName": "dim_dir",
+								"type": "DatasetReference"
+							},
+							"name": "targetDimDir"
 						}
 					],
 					"sinks": [
@@ -1958,10 +1969,27 @@
 								"referenceName": "dim_dir",
 								"type": "DatasetReference"
 							},
-							"name": "sink1"
+							"name": "insertDimDir"
+						},
+						{
+							"dataset": {
+								"referenceName": "dim_dir",
+								"type": "DatasetReference"
+							},
+							"name": "updateDimDir"
 						}
 					],
-					"transformations": [],
+					"transformations": [
+						{
+							"name": "notExistsInsert"
+						},
+						{
+							"name": "existsUpdate"
+						},
+						{
+							"name": "updateIf"
+						}
+					],
 					"scriptLines": [
 						"source(output(",
 						"          director_id as integer,",
@@ -1971,7 +1999,24 @@
 						"     validateSchema: false,",
 						"     isolationLevel: 'READ_UNCOMMITTED',",
 						"     format: 'table') ~> mapdir",
-						"mapdir sink(allowSchemaDrift: true,",
+						"source(output(",
+						"          director_id as integer,",
+						"          director as string",
+						"     ),",
+						"     allowSchemaDrift: true,",
+						"     validateSchema: false,",
+						"     isolationLevel: 'READ_UNCOMMITTED',",
+						"     format: 'table') ~> targetDimDir",
+						"mapdir, targetDimDir exists(mapdir@director_id == targetDimDir@director_id,",
+						"     negate:true,",
+						"     broadcast: 'auto')~> notExistsInsert",
+						"mapdir, targetDimDir join(mapdir@director_id == targetDimDir@director_id,",
+						"     joinType:'inner',",
+						"     matchType:'exact',",
+						"     ignoreSpaces: false,",
+						"     broadcast: 'auto')~> existsUpdate",
+						"existsUpdate alterRow(updateIf(notEquals(iifNull(mapdir@director,'NULL',mapdir@director),iifNull(targetDimDir@director,'NULL',targetDimDir@director)))) ~> updateIf",
+						"notExistsInsert sink(allowSchemaDrift: true,",
 						"     validateSchema: false,",
 						"     input(",
 						"          director_id as integer,",
@@ -1982,13 +2027,29 @@
 						"     updateable:false,",
 						"     upsertable:false,",
 						"     format: 'table',",
+						"     batchSize: 100,",
 						"     skipDuplicateMapInputs: true,",
 						"     skipDuplicateMapOutputs: true,",
 						"     errorHandlingOption: 'stopOnFirstError',",
 						"     mapColumn(",
 						"          director_id,",
 						"          director",
-						"     )) ~> sink1"
+						"     )) ~> insertDimDir",
+						"updateIf sink(allowSchemaDrift: true,",
+						"     validateSchema: false,",
+						"     input(",
+						"          director_id as integer,",
+						"          director as string",
+						"     ),",
+						"     deletable:false,",
+						"     insertable:false,",
+						"     updateable:true,",
+						"     upsertable:false,",
+						"     keys:['director_id'],",
+						"     format: 'table',",
+						"     skipDuplicateMapInputs: true,",
+						"     skipDuplicateMapOutputs: true,",
+						"     errorHandlingOption: 'stopOnFirstError') ~> updateDimDir"
 					]
 				}
 			},
@@ -2266,10 +2327,10 @@
 						},
 						{
 							"dataset": {
-								"referenceName": "map_film",
+								"referenceName": "dim_movie",
 								"type": "DatasetReference"
 							},
-							"name": "mapfilm"
+							"name": "targetDimMovie"
 						}
 					],
 					"sinks": [
@@ -2278,12 +2339,25 @@
 								"referenceName": "dim_movie",
 								"type": "DatasetReference"
 							},
-							"name": "sink2"
+							"name": "updateDimMovie"
+						},
+						{
+							"dataset": {
+								"referenceName": "dim_movie",
+								"type": "DatasetReference"
+							},
+							"name": "insertDimMovie"
 						}
 					],
 					"transformations": [
 						{
-							"name": "join1"
+							"name": "existsUpdate"
+						},
+						{
+							"name": "notExistsInsert"
+						},
+						{
+							"name": "updateIf"
 						}
 					],
 					"scriptLines": [
@@ -2306,19 +2380,45 @@
 						"source(output(",
 						"          film_id as integer,",
 						"          title as string,",
-						"          film_year as integer,",
-						"          director as string",
+						"          description as string",
 						"     ),",
 						"     allowSchemaDrift: true,",
 						"     validateSchema: false,",
 						"     isolationLevel: 'READ_UNCOMMITTED',",
-						"     format: 'table') ~> mapfilm",
-						"stgfilm, mapfilm join(stgfilm@film_id == mapfilm@film_id,",
+						"     format: 'table') ~> targetDimMovie",
+						"stgfilm, targetDimMovie join(stgfilm@film_id == targetDimMovie@film_id,",
 						"     joinType:'inner',",
 						"     matchType:'exact',",
 						"     ignoreSpaces: false,",
-						"     broadcast: 'auto')~> join1",
-						"join1 sink(allowSchemaDrift: true,",
+						"     broadcast: 'auto')~> existsUpdate",
+						"stgfilm, targetDimMovie exists(stgfilm@film_id == targetDimMovie@film_id,",
+						"     negate:true,",
+						"     broadcast: 'auto')~> notExistsInsert",
+						"existsUpdate alterRow(updateIf(notEquals(iifNull(stgfilm@title,'NULL',stgfilm@title),iifNull(targetDimMovie@title,'NULL',targetDimMovie@title))),",
+						"     updateIf(notEquals(iifNull(stgfilm@description,'NULL',stgfilm@description),iifNull(targetDimMovie@description,'NULL',targetDimMovie@description)))) ~> updateIf",
+						"updateIf sink(allowSchemaDrift: true,",
+						"     validateSchema: false,",
+						"     input(",
+						"          film_id as integer,",
+						"          title as string,",
+						"          description as string",
+						"     ),",
+						"     deletable:false,",
+						"     insertable:false,",
+						"     updateable:true,",
+						"     upsertable:false,",
+						"     keys:['film_id'],",
+						"     format: 'table',",
+						"     batchSize: 100,",
+						"     skipDuplicateMapInputs: true,",
+						"     skipDuplicateMapOutputs: true,",
+						"     errorHandlingOption: 'stopOnFirstError',",
+						"     mapColumn(",
+						"          film_id = targetDimMovie@film_id,",
+						"          title = stgfilm@title,",
+						"          description = stgfilm@description",
+						"     )) ~> updateDimMovie",
+						"notExistsInsert sink(allowSchemaDrift: true,",
 						"     validateSchema: false,",
 						"     input(",
 						"          film_id as integer,",
@@ -2330,15 +2430,20 @@
 						"     updateable:false,",
 						"     upsertable:false,",
 						"     format: 'table',",
+						"     batchSize: 100,",
 						"     skipDuplicateMapInputs: true,",
 						"     skipDuplicateMapOutputs: true,",
-						"     errorHandlingOption: 'stopOnFirstError') ~> sink2"
+						"     errorHandlingOption: 'stopOnFirstError',",
+						"     mapColumn(",
+						"          film_id,",
+						"          title,",
+						"          description",
+						"     )) ~> insertDimMovie"
 					]
 				}
 			},
 			"dependsOn": [
 				"[concat(variables('factoryId'), '/datasets/stg_film')]",
-				"[concat(variables('factoryId'), '/datasets/map_film')]",
 				"[concat(variables('factoryId'), '/datasets/dim_movie')]"
 			]
 		},
@@ -2359,10 +2464,10 @@
 						},
 						{
 							"dataset": {
-								"referenceName": "stg_film",
+								"referenceName": "dim_year",
 								"type": "DatasetReference"
 							},
-							"name": "stgfilm"
+							"name": "targetDimYear"
 						}
 					],
 					"sinks": [
@@ -2371,15 +2476,25 @@
 								"referenceName": "dim_year",
 								"type": "DatasetReference"
 							},
-							"name": "sink1"
+							"name": "insertDimYear"
+						},
+						{
+							"dataset": {
+								"referenceName": "dim_year",
+								"type": "DatasetReference"
+							},
+							"name": "updateDimYear"
 						}
 					],
 					"transformations": [
 						{
-							"name": "join1"
+							"name": "notExistsInsert"
 						},
 						{
-							"name": "select1"
+							"name": "existsUpdate"
+						},
+						{
+							"name": "updateIf"
 						}
 					],
 					"scriptLines": [
@@ -2392,33 +2507,23 @@
 						"     isolationLevel: 'READ_UNCOMMITTED',",
 						"     format: 'table') ~> mapyear",
 						"source(output(",
-						"          film_id as integer,",
-						"          title as string,",
-						"          description as string,",
-						"          director as string,",
-						"          film_year as integer,",
-						"          runtime_minutes as integer,",
-						"          rating as double,",
-						"          votes as integer,",
-						"          revenue_millions as double,",
-						"          metascore as integer",
+						"          date_id as integer,",
+						"          year as integer",
 						"     ),",
 						"     allowSchemaDrift: true,",
 						"     validateSchema: false,",
 						"     isolationLevel: 'READ_UNCOMMITTED',",
-						"     format: 'table') ~> stgfilm",
-						"stgfilm, mapyear join(film_year == year,",
+						"     format: 'table') ~> targetDimYear",
+						"mapyear, targetDimYear exists(year_id == date_id,",
+						"     negate:true,",
+						"     broadcast: 'auto')~> notExistsInsert",
+						"mapyear, targetDimYear join(year_id == date_id,",
 						"     joinType:'inner',",
 						"     matchType:'exact',",
 						"     ignoreSpaces: false,",
-						"     broadcast: 'auto')~> join1",
-						"join1 select(mapColumn(",
-						"          year_id,",
-						"          film_year",
-						"     ),",
-						"     skipDuplicateMapInputs: true,",
-						"     skipDuplicateMapOutputs: true) ~> select1",
-						"select1 sink(allowSchemaDrift: true,",
+						"     broadcast: 'auto')~> existsUpdate",
+						"existsUpdate alterRow(updateIf(notEquals(iifNull(mapyear@year,-1,mapyear@year),iifNull(targetDimYear@year,-1,targetDimYear@year)))) ~> updateIf",
+						"notExistsInsert sink(allowSchemaDrift: true,",
 						"     validateSchema: false,",
 						"     input(",
 						"          date_id as integer,",
@@ -2434,14 +2539,32 @@
 						"     errorHandlingOption: 'stopOnFirstError',",
 						"     mapColumn(",
 						"          date_id = year_id,",
-						"          year = film_year",
-						"     )) ~> sink1"
+						"          year",
+						"     )) ~> insertDimYear",
+						"updateIf sink(allowSchemaDrift: true,",
+						"     validateSchema: false,",
+						"     input(",
+						"          date_id as integer,",
+						"          year as integer",
+						"     ),",
+						"     deletable:false,",
+						"     insertable:false,",
+						"     updateable:true,",
+						"     upsertable:false,",
+						"     keys:['date_id'],",
+						"     format: 'table',",
+						"     skipDuplicateMapInputs: true,",
+						"     skipDuplicateMapOutputs: true,",
+						"     errorHandlingOption: 'stopOnFirstError',",
+						"     mapColumn(",
+						"          date_id = targetDimYear@year,",
+						"          year = mapyear@year",
+						"     )) ~> updateDimYear"
 					]
 				}
 			},
 			"dependsOn": [
 				"[concat(variables('factoryId'), '/datasets/map_year')]",
-				"[concat(variables('factoryId'), '/datasets/stg_film')]",
 				"[concat(variables('factoryId'), '/datasets/dim_year')]"
 			]
 		},
