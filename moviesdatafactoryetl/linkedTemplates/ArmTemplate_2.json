@@ -627,8 +627,9 @@
 									"mapdirector": {},
 									"mapyear": {},
 									"mapfilm": {},
-									"source1": {},
-									"sink1": {}
+									"targetFactFilm": {},
+									"insertFactFilm": {},
+									"updateFactFilm": {}
 								}
 							},
 							"staging": {},
