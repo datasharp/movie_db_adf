@@ -733,7 +733,7 @@
 			"properties": {
 				"activities": [
 					{
-						"name": "load_dim_movie_actor_assoc",
+						"name": "load_dim_year",
 						"type": "ExecuteDataFlow",
 						"dependsOn": [],
 						"policy": {
@@ -746,14 +746,14 @@
 						"userProperties": [],
 						"typeProperties": {
 							"dataflow": {
-								"referenceName": "load_dim_actor_movie_assoc",
+								"referenceName": "load_dim_year",
 								"type": "DataFlowReference",
 								"parameters": {},
 								"datasetParameters": {
-									"stgactorfilmassoc": {},
-									"targetdimactorfilmassoc": {},
-									"sinkDimActorFilmAssoc": {},
-									"updateDimActorFilmAssoc": {}
+									"mapyear": {},
+									"targetDimYear": {},
+									"insertDimYear": {},
+									"updateDimYear": {}
 								}
 							},
 							"staging": {},
@@ -772,7 +772,7 @@
 				"annotations": []
 			},
 			"dependsOn": [
-				"[concat(variables('factoryId'), '/dataflows/load_dim_actor_movie_assoc')]"
+				"[concat(variables('factoryId'), '/dataflows/load_dim_year')]"
 			]
 		},
 		{
@@ -2557,7 +2557,7 @@
 						"     skipDuplicateMapOutputs: true,",
 						"     errorHandlingOption: 'stopOnFirstError',",
 						"     mapColumn(",
-						"          date_id = targetDimYear@year,",
+						"          date_id = year_id,",
 						"          year = mapyear@year",
 						"     )) ~> updateDimYear"
 					]

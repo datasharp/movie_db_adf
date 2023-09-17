@@ -972,7 +972,7 @@
 						"     skipDuplicateMapOutputs: true,",
 						"     errorHandlingOption: 'stopOnFirstError',",
 						"     mapColumn(",
-						"          date_id = targetDimYear@year,",
+						"          date_id = year_id,",
 						"          year = mapyear@year",
 						"     )) ~> updateDimYear"
 					]
