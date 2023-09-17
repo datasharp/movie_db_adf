@@ -148,7 +148,7 @@
 				"     matchType:'exact',",
 				"     ignoreSpaces: false,",
 				"     broadcast: 'auto')~> joinMapDirector",
-				"joinMapDirector, mapyear join(film_year == year,",
+				"joinMapDirector, mapyear join(film_year == year_id,",
 				"     joinType:'inner',",
 				"     matchType:'exact',",
 				"     ignoreSpaces: false,",
@@ -257,13 +257,24 @@
 				"          year_id as integer",
 				"     ),",
 				"     deletable:false,",
-				"     insertable:true,",
-				"     updateable:false,",
+				"     insertable:false,",
+				"     updateable:true,",
 				"     upsertable:false,",
+				"     keys:['film_id'],",
 				"     format: 'table',",
 				"     skipDuplicateMapInputs: true,",
 				"     skipDuplicateMapOutputs: true,",
-				"     errorHandlingOption: 'stopOnFirstError') ~> updateFactFilm"
+				"     errorHandlingOption: 'stopOnFirstError',",
+				"     mapColumn(",
+				"          runtime_minutes = selectColumnsFinal@runtime_minutes,",
+				"          rating = selectColumnsFinal@rating,",
+				"          revenue_millions = selectColumnsFinal@revenue_millions,",
+				"          votes = selectColumnsFinal@votes,",
+				"          metascore = selectColumnsFinal@metascore,",
+				"          film_id = targetFactFilm@film_id,",
+				"          director_id = targetFactFilm@director_id,",
+				"          year_id = targetFactFilm@year_id",
+				"     )) ~> updateFactFilm"
 			]
 		}
 	}
