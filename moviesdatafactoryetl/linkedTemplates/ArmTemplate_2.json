@@ -315,7 +315,7 @@
 			"dependsOn": []
 		},
 		{
-			"name": "[concat(parameters('factoryName'), '/1 Extract')]",
+			"name": "[concat(parameters('factoryName'), '/1 extract')]",
 			"type": "Microsoft.DataFactory/factories/pipelines",
 			"apiVersion": "2018-06-01",
 			"properties": {
@@ -450,8 +450,8 @@
 								"datasetParameters": {
 									"landingmovies": {},
 									"mapdirector": {},
-									"sinkMapDirector": {},
-									"insertMapDirector": {}
+									"updateMapDir": {},
+									"insertMapDir": {}
 								}
 							},
 							"staging": {},
