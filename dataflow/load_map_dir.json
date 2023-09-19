@@ -25,14 +25,14 @@
 						"referenceName": "map_director",
 						"type": "DatasetReference"
 					},
-					"name": "sinkMapDirector"
+					"name": "updateMapDir"
 				},
 				{
 					"dataset": {
 						"referenceName": "map_director",
 						"type": "DatasetReference"
 					},
-					"name": "insertMapDirector"
+					"name": "insertMapDir"
 				}
 			],
 			"transformations": [
@@ -106,7 +106,7 @@
 				"     mapColumn(",
 				"          director = distinctDirector@Director,",
 				"          director_id",
-				"     )) ~> sinkMapDirector",
+				"     )) ~> updateMapDir",
 				"notExistsInsert sink(allowSchemaDrift: true,",
 				"     validateSchema: false,",
 				"     input(",
@@ -124,7 +124,7 @@
 				"     errorHandlingOption: 'stopOnFirstError',",
 				"     mapColumn(",
 				"          director = Director",
-				"     )) ~> insertMapDirector"
+				"     )) ~> insertMapDir"
 			]
 		}
 	}

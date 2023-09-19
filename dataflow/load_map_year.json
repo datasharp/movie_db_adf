@@ -125,6 +125,7 @@
 				"     upsertable:false,",
 				"     keys:['year_id'],",
 				"     format: 'table',",
+				"     batchSize: 100,",
 				"     skipDuplicateMapInputs: true,",
 				"     skipDuplicateMapOutputs: true,",
 				"     errorHandlingOption: 'stopOnFirstError',",

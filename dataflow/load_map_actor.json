@@ -55,7 +55,7 @@
 					"name": "existsUpdate"
 				},
 				{
-					"name": "updateIfExists"
+					"name": "updateIf"
 				},
 				{
 					"name": "notExistsInsert"
@@ -119,11 +119,11 @@
 				"     matchType:'exact',",
 				"     ignoreSpaces: false,",
 				"     broadcast: 'auto')~> existsUpdate",
-				"existsUpdate alterRow(updateIf(notEquals(iifNull(Actors,'NULL',Actors),iifNull(actor,'NULL',actor)))) ~> updateIfExists",
+				"existsUpdate alterRow(updateIf(notEquals(iifNull(Actors,'NULL',Actors),iifNull(actor,'NULL',actor)))) ~> updateIf",
 				"selectActors, targetMapActors exists(Actors == actor,",
 				"     negate:true,",
 				"     broadcast: 'auto')~> notExistsInsert",
-				"updateIfExists sink(allowSchemaDrift: true,",
+				"updateIf sink(allowSchemaDrift: true,",
 				"     validateSchema: false,",
 				"     input(",
 				"          actor_id as integer,",
