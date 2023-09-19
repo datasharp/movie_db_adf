@@ -1,29 +1,78 @@
 {
-	"name": "test",
+	"name": "pipelines 2_3_4_5",
 	"properties": {
 		"activities": [
 			{
-				"name": "load_dim_year",
-				"type": "ExecuteDataFlow",
+				"name": "2 load map",
+				"type": "ExecutePipeline",
 				"dependsOn": [],
-				"policy": {
-					"timeout": "0.12:00:00",
-					"retry": 0,
-					"retryIntervalInSeconds": 30,
-					"secureOutput": false,
-					"secureInput": false
-				},
 				"userProperties": [],
 				"typeProperties": {
-					"dataflow": {
-						"referenceName": "load_dim_year",
-						"type": "DataFlowReference"
+					"pipeline": {
+						"referenceName": "2 load map",
+						"type": "PipelineReference"
 					},
-					"compute": {
-						"coreCount": 8,
-						"computeType": "General"
+					"waitOnCompletion": true
+				}
+			},
+			{
+				"name": "3 load stg",
+				"type": "ExecutePipeline",
+				"dependsOn": [
+					{
+						"activity": "2 load map",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"userProperties": [],
+				"typeProperties": {
+					"pipeline": {
+						"referenceName": "3 load stg",
+						"type": "PipelineReference"
 					},
-					"traceLevel": "Fine"
+					"waitOnCompletion": true
+				}
+			},
+			{
+				"name": "4 load dim",
+				"type": "ExecutePipeline",
+				"dependsOn": [
+					{
+						"activity": "3 load stg",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"userProperties": [],
+				"typeProperties": {
+					"pipeline": {
+						"referenceName": "4 load dim",
+						"type": "PipelineReference"
+					},
+					"waitOnCompletion": true
+				}
+			},
+			{
+				"name": "5 load fact",
+				"type": "ExecutePipeline",
+				"dependsOn": [
+					{
+						"activity": "4 load dim",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"userProperties": [],
+				"typeProperties": {
+					"pipeline": {
+						"referenceName": "5 load fact",
+						"type": "PipelineReference"
+					},
+					"waitOnCompletion": true
 				}
 			}
 		],
