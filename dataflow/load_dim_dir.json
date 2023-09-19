@@ -105,7 +105,11 @@
 				"     format: 'table',",
 				"     skipDuplicateMapInputs: true,",
 				"     skipDuplicateMapOutputs: true,",
-				"     errorHandlingOption: 'stopOnFirstError') ~> updateDimDir"
+				"     errorHandlingOption: 'stopOnFirstError',",
+				"     mapColumn(",
+				"          director_id = mapdir@director_id,",
+				"          director = mapdir@director",
+				"     )) ~> updateDimDir"
 			]
 		}
 	}
