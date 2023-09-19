@@ -472,7 +472,11 @@
 						"     format: 'table',",
 						"     skipDuplicateMapInputs: true,",
 						"     skipDuplicateMapOutputs: true,",
-						"     errorHandlingOption: 'stopOnFirstError') ~> updateDimDir"
+						"     errorHandlingOption: 'stopOnFirstError',",
+						"     mapColumn(",
+						"          director_id = mapdir@director_id,",
+						"          director = mapdir@director",
+						"     )) ~> updateDimDir"
 					]
 				}
 			},
@@ -1521,7 +1525,7 @@
 								"referenceName": "map_director",
 								"type": "DatasetReference"
 							},
-							"name": "mapdirector"
+							"name": "targertMapDirector"
 						}
 					],
 					"sinks": [
@@ -1580,16 +1584,16 @@
 						"     allowSchemaDrift: true,",
 						"     validateSchema: false,",
 						"     isolationLevel: 'READ_UNCOMMITTED',",
-						"     format: 'table') ~> mapdirector",
+						"     format: 'table') ~> targertMapDirector",
 						"landingmovies aggregate(groupBy(Director),",
 						"     each(match(name!='Director'), $$ = first($$))) ~> distinctDirector",
-						"distinctDirector, mapdirector join(distinctDirector@Director == mapdirector@director,",
+						"distinctDirector, targertMapDirector join(distinctDirector@Director == targertMapDirector@director,",
 						"     joinType:'inner',",
 						"     matchType:'exact',",
 						"     ignoreSpaces: false,",
 						"     broadcast: 'auto')~> existsUpdate",
-						"existsUpdate alterRow(updateIf(notEquals(iifNull(mapdirector@director,'NULL',mapdirector@director),iifNull(distinctDirector@Director,'NULL',distinctDirector@Director)))) ~> updateIf",
-						"distinctDirector, mapdirector exists(distinctDirector@Director == mapdirector@director,",
+						"existsUpdate alterRow(updateIf(notEquals(iifNull(targertMapDirector@director,'NULL',targertMapDirector@director),iifNull(distinctDirector@Director,'NULL',distinctDirector@Director)))) ~> updateIf",
+						"distinctDirector, targertMapDirector exists(distinctDirector@Director == targertMapDirector@director,",
 						"     negate:true,",
 						"     broadcast: 'auto')~> notExistsInsert",
 						"updateIf sink(allowSchemaDrift: true,",

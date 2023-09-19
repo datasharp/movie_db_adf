@@ -449,7 +449,7 @@
 								"parameters": {},
 								"datasetParameters": {
 									"landingmovies": {},
-									"mapdirector": {},
+									"targertMapDirector": {},
 									"updateMapDir": {},
 									"insertMapDir": {}
 								}
