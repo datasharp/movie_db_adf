@@ -4,6 +4,10 @@
 
 This Azure Data Factory (ADF) project is designed to process a movie dataset and create a star schema of dimensional tables and a fact table using Azure Data Factory Data Flows. The project follows a data architecture that includes landing, mapping, and staging tables to ensure efficient data processing and maintain data integrity.
 
+## Data Model
+
+![Screenshot](Star_schema_Movie_Data_Set.png)
+
 ## Project Structure
 
 The project is organized as follows:
