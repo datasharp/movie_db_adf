@@ -51,6 +51,7 @@ The project is organized as follows:
 - **pipelines 2_3_4_5**: This pipeline runs pipelines 2, 3, 4, and 5
 
   ## Database setup:
+
   - Star_schema_Movie_Data_Set.sql
 
 
