@@ -52,7 +52,7 @@ The project is organized as follows:
 
   ## Database setup:
 
-  - Star_schema_Movie_Data_Set.sql
+- Star_schema_Movie_Data_Set.sql
 
 
 
